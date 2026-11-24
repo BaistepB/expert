@@ -43,7 +43,7 @@ def build():
                                         type="button"
                                         onClick={() => { if (typeof window.backToHub === 'function') window.backToHub(); }}
                                         className="min-h-[38px] px-3 py-1.5 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-sm"
-                                        title="Вернуться на главный экран хаба «Эксперт»"
+                                        title="Домой"
                                     >
                                         <span>← Хаб</span>
                                     </button>
@@ -70,7 +70,7 @@ def build():
                                         type="button"
                                         onClick={() => { if (typeof window.openDrawerChat === 'function') window.openDrawerChat(); }}
                                         className="min-h-[38px] px-3 py-1.5 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-sm"
-                                        title="Открыть чат сотрудников"
+                                        title="Открыть чат"
                                     >
                                         <span>💬 Чат</span>
                                     </button>"""

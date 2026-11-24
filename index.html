@@ -210,7 +210,7 @@
       --topbar-border: rgba(255, 179, 0, 0.36);
       --topbar-btn-bg: rgba(255, 179, 0, 0.14);
       --topbar-btn-border: rgba(255, 179, 0, 0.45);
-      --topbar-btn-text: #fbbf24;
+      --topbar-btn-text: #ffffff;
       --bg: #101112;
       --surface: #1E2125;
       --surface-2: #282B30;
@@ -242,7 +242,7 @@
       --topbar-border: #bfdbfe;
       --topbar-btn-bg: rgba(29, 95, 214, 0.08);
       --topbar-btn-border: rgba(29, 95, 214, 0.26);
-      --topbar-btn-text: #1d4ed8;
+      --topbar-btn-text: #0f172a;
       --bg: #F0F2F5;
       --surface: #ffffff;
       --surface-2: #f8fafc;
@@ -752,19 +752,18 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
       padding: 0;
       cursor: pointer;
-      background: var(--topbar-btn-bg, rgba(125, 125, 125, 0.16));
-      border: 1px solid var(--topbar-btn-border, rgba(125, 125, 125, 0.25));
+      background: transparent;
+      border: none;
       color: var(--topbar-btn-text, var(--topbar-text, var(--text)));
-      transition: transform 0.15s ease, filter 0.15s ease, background 0.15s ease;
+      transition: transform 0.16s ease, opacity 0.16s ease;
       line-height: 1;
     }
 
     #btnOpenSettings:hover {
-      filter: brightness(1.08);
-      transform: scale(1.05);
+      opacity: 0.8;
+      transform: scale(1.08);
     }
 
     .topbar .btn-ghost {
@@ -831,10 +830,9 @@
       border-radius: 8px;
     }
 
-    @media (max-width: 1120px) and (min-width: 641px) {
-      #hubChatContainer {
-        margin-right: 68px;
-      }
+    /* По умолчанию чат скрыт до проверки прав доступа администратором */
+    #hubChatContainer {
+      display: none;
     }
 
     .chat-form {
@@ -1436,7 +1434,7 @@
     .comm-fab-wrap {
       position: fixed;
       right: 24px;
-      bottom: 24px;
+      bottom: 264px;
       width: 62px;
       height: 62px;
       z-index: 45;
@@ -1611,9 +1609,25 @@
       right: 84px;
     }
 
-    .comm-arc-item-close {
+    .comm-arc-item-chat {
       top: 177px;
       right: 115px;
+    }
+
+    .comm-arc-menu.no-chat .comm-arc-item-chat {
+      display: none !important;
+    }
+
+    .comm-arc-track-compact {
+      display: none;
+    }
+
+    .comm-arc-menu.no-chat .comm-arc-track-full {
+      display: none;
+    }
+
+    .comm-arc-menu.no-chat .comm-arc-track-compact {
+      display: inline;
     }
 
     /* Подписи-таблетки слева от кнопок дуги */
@@ -1655,19 +1669,80 @@
       background: #229ED9;
     }
 
-    .comm-arc-btn-close {
-      background: #1e293b;
+    .comm-arc-btn-chat {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
       color: #ffffff;
     }
 
-    [data-theme="dark"] .comm-arc-btn-close,
-    [data-theme="expert-dark"] .comm-arc-btn-close,
-    [data-theme="newyear"] .comm-arc-btn-close,
-    [data-theme="marine"] .comm-arc-btn-close,
-    [data-theme="coffee"] .comm-arc-btn-close {
-      background: var(--surface-3, #334155);
+    [data-theme="dark"] .comm-arc-btn-chat {
+      color: #111827;
+    }
+
+    /* Прозрачный canvas для распознавания жеста звезды */
+    #adminStarCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 9999;
+      pointer-events: none;
+    }
+
+    /* Стили секретного админ-меню */
+    .admin-modal-card {
+      max-width: 720px;
+      width: 96%;
+      max-height: 88vh;
+      overflow-y: auto;
+    }
+
+    .admin-user-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
       border: 1px solid var(--border);
-      color: var(--text);
+      background: var(--surface-2, var(--surface));
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .admin-badge-admin {
+      background: rgba(245, 158, 11, 0.18);
+      color: #d97706;
+    }
+
+    .admin-badge-chat-on {
+      background: rgba(34, 197, 94, 0.18);
+      color: #16a34a;
+    }
+
+    .admin-badge-chat-off {
+      background: rgba(148, 163, 184, 0.2);
+      color: var(--muted);
+    }
+
+    .admin-form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    @media (max-width: 640px) {
+      .admin-form-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     /* Модальные окна */
@@ -1772,6 +1847,7 @@
         overflow: hidden;
         overscroll-behavior: none;
         overscroll-behavior-y: none;
+        touch-action: none;
       }
       body {
         position: fixed;
@@ -1784,6 +1860,7 @@
         overflow: hidden;
         overscroll-behavior: none;
         overscroll-behavior-y: none;
+        touch-action: none;
       }
       .app-shell {
         position: relative;
@@ -1793,6 +1870,7 @@
         min-height: 0;
         overflow: hidden;
         overscroll-behavior: none;
+        touch-action: none;
       }
       .topbar {
         padding: 10px 14px;
@@ -1805,6 +1883,7 @@
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior-y: contain;
+        touch-action: pan-y;
       }
       .main-content,
       #mainScreen {
@@ -1813,12 +1892,16 @@
         overflow: hidden;
         padding: 10px 12px 10px 12px;
         gap: 8px;
+        overscroll-behavior: none;
+        touch-action: none;
       }
       #hubView {
         flex: 1;
         min-height: 0;
         overflow: hidden;
-        padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+        overscroll-behavior: none;
+        touch-action: none;
+        padding-bottom: calc(34px + env(safe-area-inset-bottom, 0px));
       }
       .module-view {
         flex: 1;
@@ -1828,6 +1911,7 @@
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior-y: contain;
+        touch-action: pan-y;
         padding-bottom: 84px;
         scrollbar-width: none;
         -ms-overflow-style: none;
@@ -1840,14 +1924,16 @@
       .hub-grid {
         margin: 4px 0;
         flex-shrink: 0;
+        touch-action: none;
       }
       .chat-docked,
       #hubChatContainer {
-        padding: 10px 12px;
-        gap: 8px;
+        padding: 8px 10px;
+        gap: 6px;
         margin-top: auto;
         margin-bottom: 4px;
         flex: 0 0 auto;
+        touch-action: none;
       }
       #hubChatContainer .chat-header {
         display: flex;
@@ -1864,19 +1950,20 @@
       }
       #hubChatContainer.chat-docked,
       #hubChatContainer {
-        padding: 8px 10px;
-        gap: 6px;
-        margin-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-        margin-right: 64px;
+        padding: 7px 10px;
+        gap: 5px;
+        margin-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+        margin-right: 0;
       }
       #hubChatContainer .chat-messages {
-        min-height: 48px;
-        max-height: 76px;
+        min-height: 44px;
+        max-height: 68px;
         padding: 6px;
         gap: 4px;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior-y: contain;
+        touch-action: pan-y;
       }
       #hubChatContainer .chat-form {
         display: flex;
@@ -1910,7 +1997,7 @@
       }
       .comm-fab-wrap {
         right: 16px;
-        bottom: 16px;
+        bottom: 215px;
         width: 56px;
         height: 56px;
       }
@@ -1957,7 +2044,12 @@
           <button type="button" class="btn btn-ghost" id="btnOpenDrawerChat" style="display: none;">💬 Чат</button>
         </div>
 
-        <button type="button" id="btnOpenSettings" aria-label="Настройки" title="Настройки">⚙️</button>
+        <button type="button" id="btnOpenSettings" aria-label="Настройки" title="Настройки">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
       </div>
     </header>
 
@@ -2112,13 +2204,22 @@
     </aside>
   </div>
 
+  <!-- Прозрачный canvas для распознавания жеста звезды (админ-меню) -->
+  <canvas id="adminStarCanvas" aria-hidden="true"></canvas>
+
   <!-- Фиксированная кнопка связи с дуговым (веерным) меню -->
   <div class="comm-fab-wrap" id="commFabWrap">
     <!-- Раскрывающееся дуговое меню -->
-    <div class="comm-arc-menu" id="commArcMenu" aria-hidden="true">
+    <div class="comm-arc-menu no-chat" id="commArcMenu" aria-hidden="true">
       <svg class="comm-arc-track-svg" viewBox="0 0 230 230" aria-hidden="true">
-        <path d="M 199,93 A 106,106 0 0 0 93,199" fill="none" stroke="var(--surface)" stroke-width="54" stroke-linecap="round" />
-        <path d="M 199,93 A 106,106 0 0 0 93,199" fill="none" stroke="var(--border)" stroke-width="1.5" stroke-linecap="round" />
+        <g class="comm-arc-track-full">
+          <path d="M 199,93 A 106,106 0 0 0 93,199" fill="none" stroke="var(--surface)" stroke-width="54" stroke-linecap="round" />
+          <path d="M 199,93 A 106,106 0 0 0 93,199" fill="none" stroke="var(--border)" stroke-width="1.5" stroke-linecap="round" />
+        </g>
+        <g class="comm-arc-track-compact">
+          <path d="M 199,93 A 106,106 0 0 0 124,124" fill="none" stroke="var(--surface)" stroke-width="54" stroke-linecap="round" />
+          <path d="M 199,93 A 106,106 0 0 0 124,124" fill="none" stroke="var(--border)" stroke-width="1.5" stroke-linecap="round" />
+        </g>
       </svg>
 
       <!-- 1. Верхняя кнопка дуги: Позвонить (справочник контактов) -->
@@ -2139,12 +2240,11 @@
         </button>
       </div>
 
-      <!-- 3. Нижняя кнопка дуги: Закрыть (×) -->
-      <div class="comm-arc-item comm-arc-item-close" id="arcItemClose" role="button" tabindex="0" title="Закрыть меню">
-        <button type="button" class="comm-arc-btn comm-arc-btn-close" id="btnArcClose" aria-label="Закрыть меню">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
+      <!-- 3. Нижняя кнопка дуги: Чат (скрыта, если доступ к чату не выдан) -->
+      <div class="comm-arc-item comm-arc-item-chat" id="arcItemChat" role="button" tabindex="0" title="Чат" aria-label="Чат">
+        <button type="button" class="comm-arc-btn comm-arc-btn-chat" id="btnArcChat" aria-label="Чат" title="Чат">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
           </svg>
         </button>
       </div>
@@ -2196,7 +2296,7 @@
   <div class="modal-backdrop" id="settingsModalBackdrop" aria-hidden="true">
     <div class="modal-card">
       <div class="modal-top">
-        <h3>⚙️ Настройки</h3>
+        <h3 id="settingsModalTitle" style="user-select: none; cursor: default;">⚙️ Настройки</h3>
         <button type="button" class="btn btn-ghost" id="btnCloseSettingsModal">✕</button>
       </div>
 
@@ -2227,6 +2327,127 @@
 
       <div style="margin-top: 16px;">
         <button type="button" class="btn btn-primary" id="btnApplySettings" style="width: 100%;">Готово</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Секретное админ-меню (открывается жестом звезды или 5 кликами по заголовку Настроек) -->
+  <div class="modal-backdrop" id="adminModalBackdrop" aria-hidden="true">
+    <div class="modal-card admin-modal-card">
+      <div class="modal-top">
+        <h3>🛡️ Администрирование</h3>
+        <button type="button" class="btn btn-ghost" id="btnCloseAdminModal">✕</button>
+      </div>
+
+      <div id="adminStatusBanner" class="status-box" style="display: none; margin-bottom: 12px;"></div>
+
+      <!-- Блок подтверждения прав администратора -->
+      <form id="adminAuthForm" style="display: none; margin-bottom: 14px; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2, var(--surface));">
+        <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px;">Подтверждение прав администратора</div>
+        <div class="admin-form-grid">
+          <div class="field" style="margin-bottom: 0;">
+            <label for="adminLoginPhone">Телефон администратора</label>
+            <input type="tel" id="adminLoginPhone" placeholder="+7 903 724 47 14" required />
+          </div>
+          <div class="field" style="margin-bottom: 0;">
+            <label for="adminLoginPin">ПИН-код (4 цифры)</label>
+            <input type="password" id="adminLoginPin" inputmode="numeric" maxlength="4" placeholder="••••" required />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Войти в админ-меню</button>
+      </form>
+
+      <!-- Основная панель администратора -->
+      <div id="adminPanelContent" style="display: none;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+          <input type="text" id="adminSearchInput" placeholder="Поиск по ФИО или телефону..." style="flex: 1 1 200px; min-width: 0;" />
+          <button type="button" class="btn btn-ghost" id="btnAdminRefreshUsers">🔄 Обновить</button>
+          <button type="button" class="btn btn-danger" id="btnAdminCleanChatAction" title="Очистить все сообщения чата в базе">🧹 Очистить весь чат</button>
+        </div>
+
+        <!-- Список пользователей -->
+        <div id="adminUsersListBox" style="max-height: 240px; overflow-y: auto; margin-bottom: 12px;"></div>
+
+        <!-- Карточка детального просмотра и редактирования пользователя -->
+        <div id="adminUserEditorBox" style="display: none; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2, var(--surface));">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px;">
+            <strong id="adminEditorHeading" style="font-size: 15px;">Редактирование пользователя</strong>
+            <button type="button" class="btn btn-ghost" id="btnAdminCloseEditor">Свернуть</button>
+          </div>
+
+          <form id="adminEditUserForm">
+            <input type="hidden" id="adminEditTargetPhone" />
+            <div class="admin-form-grid">
+              <div class="field" style="margin-bottom: 0;">
+                <label for="adminEditFullName">ФИО</label>
+                <input type="text" id="adminEditFullName" />
+              </div>
+              <div class="field" style="margin-bottom: 0;">
+                <label for="adminEditPhone">Телефон (11 цифр)</label>
+                <input type="text" id="adminEditPhone" />
+              </div>
+              <div class="field" style="margin-bottom: 0;">
+                <label for="adminEditPin">ПИН-код (4 цифры)</label>
+                <input type="text" id="adminEditPin" maxlength="4" />
+              </div>
+              <div class="field" style="margin-bottom: 0;">
+                <label for="adminEditRole">Роль</label>
+                <select id="adminEditRole" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+                  <option value="user">user (Сотрудник)</option>
+                  <option value="admin">admin (Администратор)</option>
+                </select>
+              </div>
+              <div class="field" style="margin-bottom: 0;">
+                <label for="adminEditPosition">Должность</label>
+                <input type="text" id="adminEditPosition" />
+              </div>
+              <div class="field" style="margin-bottom: 0;">
+                <label for="adminEditOrganization">Организация</label>
+                <input type="text" id="adminEditOrganization" />
+              </div>
+              <div class="field" style="margin-bottom: 0;">
+                <label for="adminEditCarBrand">Автомобиль</label>
+                <input type="text" id="adminEditCarBrand" />
+              </div>
+              <div class="field" style="margin-bottom: 0;">
+                <label for="adminEditCarPlate">Госномер</label>
+                <input type="text" id="adminEditCarPlate" />
+              </div>
+              <div class="field" style="margin-bottom: 0;">
+                <label for="adminEditNormSummer">Норма лето</label>
+                <input type="text" id="adminEditNormSummer" />
+              </div>
+              <div class="field" style="margin-bottom: 0;">
+                <label for="adminEditNormWinter">Норма зима</label>
+                <input type="text" id="adminEditNormWinter" />
+              </div>
+              <div class="field" style="margin-bottom: 0;">
+                <label for="adminEditSecretWord">Кодовое слово</label>
+                <input type="text" id="adminEditSecretWord" />
+              </div>
+              <div class="field" style="margin-bottom: 0;">
+                <label for="adminEditSecretHint">Подсказка</label>
+                <input type="text" id="adminEditSecretHint" />
+              </div>
+            </div>
+
+            <label style="display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
+              <input type="checkbox" id="adminEditChatAllowed" style="width: 18px; height: 18px;" />
+              <span>Разрешить доступ к корпоративному чату</span>
+            </label>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
+              <button type="submit" class="btn btn-primary" style="flex: 1 1 180px;">💾 Сохранить изменения</button>
+              <button type="button" class="btn btn-danger" id="btnAdminDeleteUser">🗑️ Удалить пользователя</button>
+            </div>
+          </form>
+
+          <!-- Сводка всех данных пользователя из Google Таблицы -->
+          <div style="margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px;">
+            <div style="font-weight: 700; font-size: 13px; margin-bottom: 6px;">📊 Все данные пользователя в таблице:</div>
+            <pre id="adminUserRawDetails" style="max-height: 180px; overflow: auto; font-size: 11px; padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.06); white-space: pre-wrap; word-break: break-word;">Выберите пользователя для загрузки подробностей...</pre>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -2787,7 +3008,99 @@
       });
     }
 
+    const PRIMARY_ADMIN_PHONE = "79037244714";
+
+    function isSessionAdmin(session) {
+      if (!session) return false;
+      const p = normalizePhone11(session.phone);
+      return p === PRIMARY_ADMIN_PHONE || String(session.role || "").trim().toLowerCase() === "admin" || session.isAdmin === true;
+    }
+
+    function isSessionChatAllowed(session) {
+      if (!session) return false;
+      if (session.chatAllowed !== undefined && session.chatAllowed !== null && String(session.chatAllowed).trim() !== "") {
+        return session.chatAllowed === true || String(session.chatAllowed).trim().toLowerCase() === "true";
+      }
+      // По умолчанию чат скрыт для всех пользователей, кроме главного администратора
+      return isSessionAdmin(session);
+    }
+
+    function syncChatAccessUI() {
+      const allowed = isSessionChatAllowed(appState.session);
+      const hubChatEl = document.getElementById("hubChatContainer");
+      const btnDrawer = document.getElementById("btnOpenDrawerChat");
+      const arcMenu = document.getElementById("commArcMenu");
+      const arcItemChat = document.getElementById("arcItemChat");
+
+      if (hubChatEl) {
+        hubChatEl.style.display = allowed ? "flex" : "none";
+      }
+      if (btnDrawer) {
+        btnDrawer.style.display = (allowed && appState.activeModule) ? "inline-flex" : "none";
+      }
+      if (arcMenu) {
+        arcMenu.classList.toggle("no-chat", !allowed);
+      }
+      if (arcItemChat) {
+        arcItemChat.style.display = allowed ? "flex" : "none";
+        arcItemChat.setAttribute("aria-hidden", allowed ? "false" : "true");
+      }
+      if (!allowed) {
+        closeDrawerChat();
+      }
+    }
+
+    async function cleanChatAsAdmin(adminCreds) {
+      const creds = adminCreds || (appState.session && isSessionAdmin(appState.session)
+        ? { phone: appState.session.phone, pin: appState.session.pin }
+        : null);
+      if (!creds || !creds.phone || !creds.pin) {
+        if (typeof window.showSyncToast === "function") {
+          window.showSyncToast("Команда /adminclean доступна только администратору.", "error");
+        }
+        return false;
+      }
+
+      if (EXPERT_CONFIG.gasUrl) {
+        try {
+          const res = await apiPost("chatClean", {
+            adminPhone: normalizePhone11(creds.phone),
+            adminPin: String(creds.pin).replace(/\D/g, "").slice(0, 4),
+            phone: normalizePhone11(creds.phone),
+            pin: String(creds.pin).replace(/\D/g, "").slice(0, 4)
+          });
+          const errStr = String((res && res.error) || "").toLowerCase();
+          if (res && res.ok === false) {
+            if (errStr.includes("неизвестное действие") || errStr.includes("unknown action")) {
+              appState.messages = [];
+              SafeStorage.set(EXPERT_CONFIG.storageKeys.chatCache, "[]");
+              renderChatLists();
+              if (typeof window.showSyncToast === "function") {
+                window.showSyncToast("Локальный чат очищен. Для очистки таблицы обновите Code.gs в GAS.");
+              }
+              return true;
+            }
+            if (typeof window.showSyncToast === "function") {
+              window.showSyncToast(res.error || "Не удалось очистить чат", "error");
+            }
+            return false;
+          }
+        } catch (err) {
+          console.warn("[/adminclean] Ошибка запроса в GAS:", err);
+        }
+      }
+
+      appState.messages = [];
+      SafeStorage.set(EXPERT_CONFIG.storageKeys.chatCache, "[]");
+      renderChatLists();
+      if (typeof window.showSyncToast === "function") {
+        window.showSyncToast("Чат полностью очищен (/adminclean)");
+      }
+      return true;
+    }
+
     async function refreshChat() {
+      syncChatAccessUI();
       if (!appState.session) return;
       if (EXPERT_CONFIG.gasUrl) {
         try {
@@ -2795,6 +3108,25 @@
             phone: appState.session.phone,
             pin: appState.session.pin
           });
+          if (res && (res.chatAllowed !== undefined || res.isAdmin !== undefined || res.chatDenied)) {
+            let changed = false;
+            if (res.chatAllowed !== undefined) {
+              appState.session.chatAllowed = Boolean(res.chatAllowed);
+              changed = true;
+            } else if (res.chatDenied) {
+              appState.session.chatAllowed = false;
+              changed = true;
+            }
+            if (res.isAdmin !== undefined) {
+              appState.session.isAdmin = Boolean(res.isAdmin);
+              appState.session.role = res.isAdmin ? "admin" : "user";
+              changed = true;
+            }
+            if (changed) {
+              SafeStorage.set(EXPERT_CONFIG.storageKeys.session, JSON.stringify(appState.session));
+              syncChatAccessUI();
+            }
+          }
           if (res && res.ok && Array.isArray(res.messages)) {
             appState.messages = res.messages;
             SafeStorage.set(EXPERT_CONFIG.storageKeys.chatCache, JSON.stringify(appState.messages));
@@ -2810,6 +3142,20 @@
       if (!appState.session) return;
       const trimmed = String(textValue || "").trim();
       if (!trimmed) return;
+
+      // Скрытая команда администратора /adminclean
+      if (trimmed.toLowerCase() === "/adminclean") {
+        await cleanChatAsAdmin();
+        return;
+      }
+
+      if (!isSessionChatAllowed(appState.session)) {
+        if (typeof window.showSyncToast === "function") {
+          window.showSyncToast("Доступ к чату не выдан администратором.", "error");
+        }
+        syncChatAccessUI();
+        return;
+      }
 
       const stamp = formatNowDateTime();
       const displayName = appState.session.fullName || formatPhoneMask(appState.session.phone);
@@ -2828,7 +3174,7 @@
 
       if (EXPERT_CONFIG.gasUrl) {
         try {
-          await apiPost("chatSend", {
+          const res = await apiPost("chatSend", {
             phone: appState.session.phone,
             pin: appState.session.pin,
             date: stamp.date,
@@ -2836,6 +3182,12 @@
             userName: displayName,
             message: trimmed
           });
+          if (res && res.chatDenied) {
+            appState.session.chatAllowed = false;
+            SafeStorage.set(EXPERT_CONFIG.storageKeys.session, JSON.stringify(appState.session));
+            syncChatAccessUI();
+            return;
+          }
           await refreshChat();
         } catch (err) {
           console.warn("[Чат] Сообщение сохранено в локальном кэше, ошибка отправки в GAS:", err);
@@ -2933,9 +3285,12 @@
       if (!MODULE_TITLES[moduleKey]) return;
 
       appState.activeModule = moduleKey;
+      const topbarEl = document.querySelector(".topbar");
+      if (topbarEl) topbarEl.style.display = "none";
       document.getElementById("hubView").style.display = "none";
       document.getElementById("moduleView").style.display = "flex";
-      document.getElementById("btnOpenDrawerChat").style.display = "inline-flex";
+      const drawerBtn = document.getElementById("btnOpenDrawerChat");
+      if (drawerBtn) drawerBtn.style.display = isSessionChatAllowed(appState.session) ? "inline-flex" : "none";
       // Заголовок модуля отображается в #moduleActiveBadge, в шапке сохраняются живые дата и время
 
       const badge = document.getElementById("moduleActiveBadge");
@@ -2957,6 +3312,8 @@
 
     function backToHub() {
       appState.activeModule = null;
+      const topbarEl = document.querySelector(".topbar");
+      if (topbarEl) topbarEl.style.display = "flex";
       document.getElementById("moduleView").style.display = "none";
       document.querySelectorAll(".module-container").forEach((el) => {
         el.style.display = "none";
@@ -2969,7 +3326,7 @@
     }
 
     function openDrawerChat() {
-      if (!appState.session) return;
+      if (!appState.session || !isSessionChatAllowed(appState.session)) return;
       document.getElementById("chatDrawerBackdrop").classList.add("open");
       renderChatLists();
     }
@@ -2992,6 +3349,7 @@
       const topbarActions = document.getElementById("topbarActions");
       if (topbarActions) topbarActions.style.display = isAuthed ? "flex" : "none";
 
+      syncChatAccessUI();
       if (isAuthed) {
         const displayName = appState.session.fullName || formatPhoneMask(appState.session.phone);
         const currentUserName = document.getElementById("currentUserName");
@@ -3023,7 +3381,7 @@
 
       window.ExpertSyncHooks = window.ExpertSyncHooks || {};
       let syncToastTimer = null;
-      const showSyncToast = (msg, type = "info") => {
+      const showSyncToast = window.showSyncToast = (msg, type = "info") => {
         const toastEl = document.getElementById("hubSyncToast");
         if (!toastEl) return;
         toastEl.textContent = msg;
@@ -3034,62 +3392,66 @@
         }, 3800);
       };
 
-      // Переход «Домой» по клику на логотип/название «Эксперт» с обязательной синхронизацией модуля
-      let isSyncingToHome = false;
-      const navigateHomeWithSync = async () => {
+      // Переход «Домой» по клику на логотип/название «Эксперт» / домик с быстрой фоновой синхронизацией
+      let activeBgSyncSeq = 0;
+      const navigateHomeWithSync = window.navigateHomeWithSync = () => {
         if (!appState.session) return;
         if (!appState.activeModule) {
           backToHub();
           return;
         }
-        if (isSyncingToHome) return;
 
         const activeMod = appState.activeModule;
         const syncHook = window.ExpertSyncHooks && typeof window.ExpertSyncHooks[activeMod] === "function"
           ? window.ExpertSyncHooks[activeMod]
           : null;
 
-        if (!syncHook) {
-          backToHub();
-          return;
-        }
+        // Мгновенно переходим на экран «Домой» без блокирующего ожидания сервера
+        backToHub();
 
-        const btnBrandHomeEl = document.getElementById("btnBrandHome");
+        if (!syncHook) return;
+
+        const seq = ++activeBgSyncSeq;
         const syncBadge = document.getElementById("topbarSyncBadge");
-        isSyncingToHome = true;
-        if (btnBrandHomeEl) {
-          btnBrandHomeEl.style.opacity = "0.65";
-          btnBrandHomeEl.style.pointerEvents = "none";
-        }
         if (syncBadge) {
           syncBadge.textContent = "⏳ Синхронизация...";
           syncBadge.style.display = "inline-flex";
         }
 
-        try {
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error("Превышено время ожидания ответа от сервера")), 9000);
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Превышено время ожидания ответа от сервера")), 12000);
+        });
+
+        Promise.resolve()
+          .then(() => Promise.race([syncHook(), timeoutPromise]))
+          .then((res) => {
+            if (seq !== activeBgSyncSeq) return;
+            if (res && res.serverNeedsUpdate) {
+              if (syncBadge) syncBadge.style.display = "none";
+              return;
+            }
+            if (syncBadge) {
+              syncBadge.textContent = "✓ Сохранено";
+              setTimeout(() => {
+                if (seq === activeBgSyncSeq && syncBadge) {
+                  syncBadge.style.display = "none";
+                }
+              }, 1400);
+            }
+          })
+          .catch((err) => {
+            console.error("[ExpertSyncHooks] Ошибка фоновой синхронизации при выходе:", err);
+            if (seq !== activeBgSyncSeq) return;
+            if (syncBadge) {
+              syncBadge.textContent = "⚠️ Ошибка сохранения";
+              setTimeout(() => {
+                if (seq === activeBgSyncSeq && syncBadge) {
+                  syncBadge.style.display = "none";
+                }
+              }, 3000);
+            }
+            showSyncToast("Ошибка синхронизации с базой: " + (err && err.message ? err.message : "проверьте соединение"), "error");
           });
-          await Promise.race([syncHook(), timeoutPromise]);
-          if (syncBadge) {
-            syncBadge.textContent = "✓ Сохранено";
-            setTimeout(() => { syncBadge.style.display = "none"; }, 1200);
-          }
-        } catch (err) {
-          console.error("[ExpertSyncHooks] Ошибка синхронизации перед выходом:", err);
-          if (syncBadge) {
-            syncBadge.textContent = "⚠️ Ошибка сохранения";
-            setTimeout(() => { syncBadge.style.display = "none"; }, 3000);
-          }
-          showSyncToast("Ошибка синхронизации с базой: " + (err.message || "проверьте соединение"), "error");
-        } finally {
-          isSyncingToHome = false;
-          if (btnBrandHomeEl) {
-            btnBrandHomeEl.style.opacity = "";
-            btnBrandHomeEl.style.pointerEvents = "";
-          }
-          backToHub();
-        }
       };
 
       const btnBrandHome = document.getElementById("btnBrandHome");
@@ -3275,7 +3637,10 @@
               appState.session = {
                 phone: phone11,
                 pin,
-                fullName: res.fullName || setupFullName || ""
+                fullName: res.fullName || setupFullName || "",
+                role: res.role || (phone11 === PRIMARY_ADMIN_PHONE ? "admin" : "user"),
+                isAdmin: res.isAdmin !== undefined ? Boolean(res.isAdmin) : (phone11 === PRIMARY_ADMIN_PHONE),
+                chatAllowed: res.chatAllowed !== undefined ? Boolean(res.chatAllowed) : (phone11 === PRIMARY_ADMIN_PHONE)
               };
               SafeStorage.set(EXPERT_CONFIG.storageKeys.session, JSON.stringify(appState.session));
               setStatusBox(statusEl, "", "");
@@ -3545,7 +3910,7 @@
       const commArcMenu = document.getElementById("commArcMenu");
       const arcItemCall = document.getElementById("arcItemCall");
       const arcItemTelegram = document.getElementById("arcItemTelegram");
-      const arcItemClose = document.getElementById("arcItemClose");
+      const arcItemChat = document.getElementById("arcItemChat");
       const phoneModal = document.getElementById("phoneModalBackdrop");
       const btnClosePhoneModal = document.getElementById("btnClosePhoneModal");
       const contactSearchInput = document.getElementById("contactSearchInput");
@@ -3612,16 +3977,37 @@
         });
       }
 
-      if (arcItemClose) {
-        arcItemClose.addEventListener("click", (e) => {
+      const openChatFromWidget = () => {
+        setCommMenuOpen(false);
+        if (!appState.session || !isSessionChatAllowed(appState.session)) {
+          syncChatAccessUI();
+          return;
+        }
+        if (appState.activeModule) {
+          openDrawerChat();
+          return;
+        }
+        const hubChat = document.getElementById("hubChatContainer");
+        const hubChatInput = document.getElementById("hubChatInput");
+        if (hubChat && hubChat.style.display !== "none") {
+          hubChat.style.boxShadow = "0 0 0 3px var(--primary)";
+          setTimeout(() => { hubChat.style.boxShadow = ""; }, 1200);
+          if (hubChatInput) hubChatInput.focus();
+        } else {
+          openDrawerChat();
+        }
+      };
+
+      if (arcItemChat) {
+        arcItemChat.addEventListener("click", (e) => {
           e.stopPropagation();
-          setCommMenuOpen(false);
+          openChatFromWidget();
         });
-        arcItemClose.addEventListener("keydown", (e) => {
+        arcItemChat.addEventListener("keydown", (e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             e.stopPropagation();
-            setCommMenuOpen(false);
+            openChatFromWidget();
           }
         });
       }
@@ -3658,11 +4044,562 @@
         });
       }
 
+      // === СЕКРЕТНОЕ АДМИН-МЕНЮ (ЖЕСТ ЗВЕЗДЫ + 5 КЛИКОВ ПО ЗАГОЛОВКУ «НАСТРОЙКИ») ===
+      const adminModal = document.getElementById("adminModalBackdrop");
+      const btnCloseAdminModal = document.getElementById("btnCloseAdminModal");
+      const adminAuthForm = document.getElementById("adminAuthForm");
+      const adminLoginPhone = document.getElementById("adminLoginPhone");
+      const adminLoginPin = document.getElementById("adminLoginPin");
+      const adminPanelContent = document.getElementById("adminPanelContent");
+      const adminStatusBanner = document.getElementById("adminStatusBanner");
+      const adminSearchInput = document.getElementById("adminSearchInput");
+      const btnAdminRefreshUsers = document.getElementById("btnAdminRefreshUsers");
+      const btnAdminCleanChatAction = document.getElementById("btnAdminCleanChatAction");
+      const adminUsersListBox = document.getElementById("adminUsersListBox");
+      const adminUserEditorBox = document.getElementById("adminUserEditorBox");
+      const btnAdminCloseEditor = document.getElementById("btnAdminCloseEditor");
+      const adminEditUserForm = document.getElementById("adminEditUserForm");
+      const btnAdminDeleteUser = document.getElementById("btnAdminDeleteUser");
+      const adminUserRawDetails = document.getElementById("adminUserRawDetails");
+
+      let adminCreds = null;
+      let adminUsersCache = [];
+
+      if (adminLoginPhone) attachPhoneMask(adminLoginPhone);
+
+      const renderAdminUsersList = () => {
+        if (!adminUsersListBox) return;
+        const q = String((adminSearchInput && adminSearchInput.value) || "").trim().toLowerCase();
+        const filtered = adminUsersCache.filter((u) => {
+          const nameStr = String(u.fullName || "").toLowerCase();
+          const phoneStr = String(u.userId || "").toLowerCase();
+          return !q || nameStr.includes(q) || phoneStr.includes(q);
+        });
+
+        if (!filtered.length) {
+          adminUsersListBox.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--muted); font-size: 13px;">Пользователи не найдены.</div>';
+          return;
+        }
+
+        adminUsersListBox.innerHTML = filtered.map((u) => {
+          const masked = formatPhoneMask(u.userId);
+          const safeName = String(u.fullName || "Без имени");
+          const chatOn = Boolean(u.chatAllowed);
+          return `
+            <div class="admin-user-row">
+              <div style="min-width: 170px; flex: 1;">
+                <div style="font-weight: 700; font-size: 14px;">
+                  ${safeName}
+                  ${u.isAdmin ? '<span class="admin-badge admin-badge-admin">ADMIN</span>' : ''}
+                </div>
+                <div style="font-size: 12px; color: var(--muted); font-family: monospace;">${masked}</div>
+              </div>
+              <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                <button type="button" class="btn btn-ghost" data-admin-toggle-chat="${u.userId}" data-next-chat="${chatOn ? 'false' : 'true'}" style="font-size: 12px; padding: 6px 10px;">
+                  <span class="admin-badge ${chatOn ? 'admin-badge-chat-on' : 'admin-badge-chat-off'}">💬 Чат: ${chatOn ? 'ВКЛ' : 'ВЫКЛ'}</span>
+                </button>
+                <button type="button" class="btn btn-ghost" data-admin-edit="${u.userId}" style="font-size: 12px; padding: 6px 10px;">✏️ Данные</button>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        adminUsersListBox.querySelectorAll("[data-admin-toggle-chat]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            if (!adminCreds) return;
+            const targetPhone = btn.getAttribute("data-admin-toggle-chat");
+            const nextChat = btn.getAttribute("data-next-chat") === "true";
+            try {
+              setStatusBox(adminStatusBanner, "Обновление доступа к чату...", "info");
+              const res = await apiPost("adminToggleChat", {
+                adminPhone: adminCreds.phone,
+                adminPin: adminCreds.pin,
+                targetPhone,
+                chatAllowed: nextChat
+              });
+              if (res && res.ok) {
+                if (appState.session && normalizePhone11(appState.session.phone) === normalizePhone11(targetPhone)) {
+                  appState.session.chatAllowed = nextChat;
+                  SafeStorage.set(EXPERT_CONFIG.storageKeys.session, JSON.stringify(appState.session));
+                  syncChatAccessUI();
+                }
+                await loadAdminUsers();
+                setStatusBox(adminStatusBanner, "Доступ к чату обновлён.", "success");
+              } else {
+                setStatusBox(adminStatusBanner, (res && res.error) || "Не удалось изменить доступ к чату.", "error");
+              }
+            } catch (err) {
+              setStatusBox(adminStatusBanner, "Ошибка: " + err.message, "error");
+            }
+          });
+        });
+
+        adminUsersListBox.querySelectorAll("[data-admin-edit]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const targetPhone = btn.getAttribute("data-admin-edit");
+            openAdminUserEditor(targetPhone);
+          });
+        });
+      };
+
+      const loadAdminUsers = async () => {
+        if (!adminCreds) return;
+        if (!EXPERT_CONFIG.gasUrl) {
+          setStatusBox(adminStatusBanner, "URL GAS не настроен.", "error");
+          return;
+        }
+        try {
+          setStatusBox(adminStatusBanner, "Загрузка списка пользователей из таблицы...", "info");
+          const res = await apiPost("adminUsersList", {
+            adminPhone: adminCreds.phone,
+            adminPin: adminCreds.pin
+          });
+          if (res && res.ok && Array.isArray(res.users)) {
+            adminUsersCache = res.users;
+            if (adminAuthForm) adminAuthForm.style.display = "none";
+            if (adminPanelContent) adminPanelContent.style.display = "block";
+            renderAdminUsersList();
+            setStatusBox(adminStatusBanner, "Пользователей в таблице: " + res.users.length, "success");
+            return true;
+          }
+          const errMsg = (res && res.error) || "Ошибка загрузки пользователей.";
+          if (errMsg.toLowerCase().includes("неизвестное действие")) {
+            if (adminAuthForm) adminAuthForm.style.display = "none";
+            if (adminPanelContent) adminPanelContent.style.display = "block";
+            setStatusBox(adminStatusBanner, "Сервер Google Apps Script по текущему URL ещё не обновлён под админ-функции: скопируйте обновлённый Code.gs в проект GAS и выполните Новое развёртывание.", "error");
+          } else {
+            setStatusBox(adminStatusBanner, errMsg, "error");
+            if (errMsg.toLowerCase().includes("доступ") || errMsg.toLowerCase().includes("авторизац")) {
+              if (adminAuthForm) adminAuthForm.style.display = "block";
+              if (adminPanelContent) adminPanelContent.style.display = "none";
+            }
+          }
+        } catch (err) {
+          setStatusBox(adminStatusBanner, "Ошибка связи с GAS: " + err.message, "error");
+        }
+        return false;
+      };
+
+      const openAdminUserEditor = async (targetPhone) => {
+        const userObj = adminUsersCache.find((u) => normalizePhone11(u.userId) === normalizePhone11(targetPhone));
+        if (!userObj || !adminUserEditorBox) return;
+
+        adminUserEditorBox.style.display = "block";
+        document.getElementById("adminEditTargetPhone").value = userObj.userId;
+        document.getElementById("adminEditorHeading").textContent = "Профиль: " + (userObj.fullName || formatPhoneMask(userObj.userId));
+        document.getElementById("adminEditFullName").value = userObj.fullName || "";
+        document.getElementById("adminEditPhone").value = userObj.userId || "";
+        document.getElementById("adminEditPin").value = userObj.pin || "";
+        document.getElementById("adminEditRole").value = userObj.isAdmin ? "admin" : "user";
+        document.getElementById("adminEditPosition").value = userObj.position || "";
+        document.getElementById("adminEditOrganization").value = userObj.organization || "";
+        document.getElementById("adminEditCarBrand").value = userObj.carBrand || "";
+        document.getElementById("adminEditCarPlate").value = userObj.carPlate || "";
+        document.getElementById("adminEditNormSummer").value = userObj.normSummer || "";
+        document.getElementById("adminEditNormWinter").value = userObj.normWinter || "";
+        document.getElementById("adminEditSecretWord").value = userObj.secretWord || "";
+        document.getElementById("adminEditSecretHint").value = userObj.secretHint || "";
+        document.getElementById("adminEditChatAllowed").checked = Boolean(userObj.chatAllowed);
+
+        if (adminUserRawDetails) {
+          adminUserRawDetails.textContent = "Загрузка полных данных из всех листов таблицы...";
+        }
+
+        if (adminCreds && EXPERT_CONFIG.gasUrl) {
+          try {
+            const det = await apiPost("adminUserDetails", {
+              adminPhone: adminCreds.phone,
+              adminPin: adminCreds.pin,
+              targetPhone: userObj.userId
+            });
+            if (det && det.ok) {
+              if (adminUserRawDetails) {
+                adminUserRawDetails.textContent = JSON.stringify({
+                  profile: det.profile,
+                  months: det.months,
+                  addresses: det.addresses,
+                  routesSummary: det.routes ? {
+                    updatedAt: det.routes.updatedAt || null,
+                    pointsCount: Array.isArray(det.routes.expertPoints) ? det.routes.expertPoints.length : 0,
+                    historyDays: det.routes.routeHistory ? Object.keys(det.routes.routeHistory).length : 0
+                  } : null,
+                  warehouseSummary: det.warehouse ? {
+                    ordersCount: Array.isArray(det.warehouse.orderHistory) ? det.warehouse.orderHistory.length : 0,
+                    favoritesCount: Array.isArray(det.warehouse.favorites) ? det.warehouse.favorites.length : 0
+                  } : null,
+                  orders: det.orders
+                }, null, 2);
+              }
+            } else if (adminUserRawDetails) {
+              adminUserRawDetails.textContent = (det && det.error) || "Не удалось загрузить детали.";
+            }
+          } catch (err) {
+            if (adminUserRawDetails) adminUserRawDetails.textContent = "Ошибка загрузки: " + err.message;
+          }
+        }
+      };
+
+      const openAdminModal = window.openAdminModal = () => {
+        if (!adminModal) return;
+        closeSettingsModal();
+        setCommMenuOpen(false);
+        adminModal.classList.add("open");
+        adminModal.setAttribute("aria-hidden", "false");
+        setStatusBox(adminStatusBanner, "", "");
+
+        if (appState.session && isSessionAdmin(appState.session)) {
+          adminCreds = { phone: appState.session.phone, pin: appState.session.pin };
+          if (adminAuthForm) adminAuthForm.style.display = "none";
+          if (adminPanelContent) adminPanelContent.style.display = "block";
+          loadAdminUsers();
+        } else {
+          adminCreds = null;
+          if (adminAuthForm) adminAuthForm.style.display = "block";
+          if (adminPanelContent) adminPanelContent.style.display = "none";
+          if (adminLoginPhone) adminLoginPhone.focus();
+        }
+      };
+
+      const closeAdminModal = () => {
+        if (!adminModal) return;
+        adminModal.classList.remove("open");
+        adminModal.setAttribute("aria-hidden", "true");
+      };
+
+      if (btnCloseAdminModal) btnCloseAdminModal.addEventListener("click", closeAdminModal);
+      if (adminModal) {
+        adminModal.addEventListener("click", (e) => {
+          if (e.target.id === "adminModalBackdrop") closeAdminModal();
+        });
+      }
+      if (adminSearchInput) {
+        adminSearchInput.addEventListener("input", renderAdminUsersList);
+      }
+      if (btnAdminRefreshUsers) {
+        btnAdminRefreshUsers.addEventListener("click", loadAdminUsers);
+      }
+      if (btnAdminCloseEditor && adminUserEditorBox) {
+        btnAdminCloseEditor.addEventListener("click", () => {
+          adminUserEditorBox.style.display = "none";
+        });
+      }
+      if (btnAdminCleanChatAction) {
+        btnAdminCleanChatAction.addEventListener("click", async () => {
+          if (!confirm("Удалить ВСЕ сообщения чата на сервере и у пользователей?")) return;
+          const ok = await cleanChatAsAdmin(adminCreds);
+          if (ok) {
+            setStatusBox(adminStatusBanner, "Все сообщения чата удалены (/adminclean).", "success");
+          }
+        });
+      }
+      if (adminAuthForm) {
+        adminAuthForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const ph = normalizePhone11(adminLoginPhone ? adminLoginPhone.value : "");
+          const pn = String(adminLoginPin ? adminLoginPin.value : "").replace(/\D/g, "").slice(0, 4);
+          if (ph.length !== 11 || pn.length !== 4) {
+            setStatusBox(adminStatusBanner, "Введите корректный телефон (11 цифр) и 4-значный ПИН-код.", "error");
+            return;
+          }
+          adminCreds = { phone: ph, pin: pn };
+          await loadAdminUsers();
+        });
+      }
+      if (adminEditUserForm) {
+        adminEditUserForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          if (!adminCreds) return;
+          const targetPhone = document.getElementById("adminEditTargetPhone").value;
+          const updates = {
+            fullName: document.getElementById("adminEditFullName").value.trim(),
+            userId: normalizePhone11(document.getElementById("adminEditPhone").value),
+            pin: String(document.getElementById("adminEditPin").value || "").replace(/\D/g, "").slice(0, 4),
+            role: document.getElementById("adminEditRole").value,
+            position: document.getElementById("adminEditPosition").value.trim(),
+            organization: document.getElementById("adminEditOrganization").value.trim(),
+            carBrand: document.getElementById("adminEditCarBrand").value.trim(),
+            carPlate: document.getElementById("adminEditCarPlate").value.trim(),
+            normSummer: document.getElementById("adminEditNormSummer").value.trim(),
+            normWinter: document.getElementById("adminEditNormWinter").value.trim(),
+            secretWord: document.getElementById("adminEditSecretWord").value.trim(),
+            secretHint: document.getElementById("adminEditSecretHint").value.trim(),
+            chatAllowed: document.getElementById("adminEditChatAllowed").checked
+          };
+          try {
+            setStatusBox(adminStatusBanner, "Сохранение изменений пользователя...", "info");
+            const res = await apiPost("adminUserUpdate", {
+              adminPhone: adminCreds.phone,
+              adminPin: adminCreds.pin,
+              targetPhone,
+              updates
+            });
+            if (res && res.ok) {
+              if (appState.session && normalizePhone11(appState.session.phone) === normalizePhone11(targetPhone)) {
+                appState.session.chatAllowed = Boolean(updates.chatAllowed);
+                appState.session.role = updates.role;
+                appState.session.isAdmin = updates.role === "admin" || normalizePhone11(targetPhone) === PRIMARY_ADMIN_PHONE;
+                if (updates.fullName) appState.session.fullName = updates.fullName;
+                SafeStorage.set(EXPERT_CONFIG.storageKeys.session, JSON.stringify(appState.session));
+                syncChatAccessUI();
+              }
+              await loadAdminUsers();
+              setStatusBox(adminStatusBanner, "Изменения пользователя сохранены в таблице.", "success");
+            } else {
+              setStatusBox(adminStatusBanner, (res && res.error) || "Не удалось сохранить изменения.", "error");
+            }
+          } catch (err) {
+            setStatusBox(adminStatusBanner, "Ошибка сохранения: " + err.message, "error");
+          }
+        });
+      }
+      if (btnAdminDeleteUser) {
+        btnAdminDeleteUser.addEventListener("click", async () => {
+          if (!adminCreds) return;
+          const targetPhone = document.getElementById("adminEditTargetPhone").value;
+          if (!targetPhone) return;
+          if (!confirm("Удалить пользователя " + formatPhoneMask(targetPhone) + " и его данные из таблицы?")) return;
+          try {
+            setStatusBox(adminStatusBanner, "Удаление пользователя...", "info");
+            const res = await apiPost("adminUserDelete", {
+              adminPhone: adminCreds.phone,
+              adminPin: adminCreds.pin,
+              targetPhone,
+              deleteModuleData: true
+            });
+            if (res && res.ok) {
+              if (adminUserEditorBox) adminUserEditorBox.style.display = "none";
+              await loadAdminUsers();
+              setStatusBox(adminStatusBanner, "Пользователь удалён из таблицы.", "success");
+            } else {
+              setStatusBox(adminStatusBanner, (res && res.error) || "Не удалось удалить пользователя.", "error");
+            }
+          } catch (err) {
+            setStatusBox(adminStatusBanner, "Ошибка удаления: " + err.message, "error");
+          }
+        });
+      }
+
+      // Запасной вход в админ-меню: 5 быстрых кликов по заголовку «⚙️ Настройки»
+      const settingsModalTitle = document.getElementById("settingsModalTitle");
+      if (settingsModalTitle) {
+        let titleClickCount = 0;
+        let titleClickTimer = null;
+        settingsModalTitle.addEventListener("click", () => {
+          titleClickCount++;
+          if (titleClickTimer) clearTimeout(titleClickTimer);
+          if (titleClickCount >= 5) {
+            titleClickCount = 0;
+            openAdminModal();
+            return;
+          }
+          titleClickTimer = setTimeout(() => { titleClickCount = 0; }, 2200);
+        });
+      }
+
+      // === РАСПОЗНАВАНИЕ ЖЕСТА ЗВЕЗДЫ (★) НА CANVAS ===
+      const initStarGestureRecognizer = () => {
+        const canvas = document.getElementById("adminStarCanvas");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        let isDrawing = false;
+        let activePointerId = null;
+        let points = [];
+        let fadeTimer = null;
+
+        const resizeCanvas = () => {
+          const dpr = window.devicePixelRatio || 1;
+          canvas.width = Math.floor(window.innerWidth * dpr);
+          canvas.height = Math.floor(window.innerHeight * dpr);
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        };
+        resizeCanvas();
+        window.addEventListener("resize", resizeCanvas);
+
+        const clearCanvas = () => {
+          ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        };
+
+        const rdpSimplify = (pts, eps) => {
+          if (pts.length < 3) return pts;
+          let maxDist = 0;
+          let index = 0;
+          const p1 = pts[0];
+          const p2 = pts[pts.length - 1];
+          const dx = p2.x - p1.x;
+          const dy = p2.y - p1.y;
+          const lenSq = dx * dx + dy * dy;
+
+          for (let i = 1; i < pts.length - 1; i++) {
+            const p = pts[i];
+            let dist = 0;
+            if (lenSq === 0) {
+              dist = Math.hypot(p.x - p1.x, p.y - p1.y);
+            } else {
+              const t = ((p.x - p1.x) * dx + (p.y - p1.y) * dy) / lenSq;
+              const projX = p1.x + t * dx;
+              const projY = p1.y + t * dy;
+              dist = Math.hypot(p.x - projX, p.y - projY);
+            }
+            if (dist > maxDist) {
+              maxDist = dist;
+              index = i;
+            }
+          }
+
+          if (maxDist > eps) {
+            const left = rdpSimplify(pts.slice(0, index + 1), eps);
+            const right = rdpSimplify(pts.slice(index), eps);
+            return left.slice(0, -1).concat(right);
+          }
+          return [p1, p2];
+        };
+
+        const segmentsIntersect = (a, b, c, d) => {
+          const ccw = (p1, p2, p3) => (p3.y - p1.y) * (p2.x - p1.x) > (p2.y - p1.y) * (p3.x - p1.x);
+          return (ccw(a, c, d) !== ccw(b, c, d)) && (ccw(a, b, c) !== ccw(a, b, d));
+        };
+
+        const isFivePointStarGesture = window.isFivePointStarGesture = (rawPts) => {
+          if (!Array.isArray(rawPts) || rawPts.length < 14) return false;
+          let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+          let totalLen = 0;
+          for (let i = 0; i < rawPts.length; i++) {
+            const p = rawPts[i];
+            if (p.x < minX) minX = p.x;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.y > maxY) maxY = p.y;
+            if (i > 0) totalLen += Math.hypot(p.x - rawPts[i - 1].x, p.y - rawPts[i - 1].y);
+          }
+
+          const width = maxX - minX;
+          const height = maxY - minY;
+          const maxDim = Math.max(width, height);
+          const minDim = Math.min(width, height);
+
+          // Защита от случайных мелких касаний, узких линий и слишком коротких штрихов
+          if (width < 70 || height < 70 || (minDim / maxDim) < 0.42 || totalLen < maxDim * 2.2) {
+            return false;
+          }
+
+          // Начало и конец звезды должны быть сравнительно близко
+          const endDist = Math.hypot(rawPts[0].x - rawPts[rawPts.length - 1].x, rawPts[0].y - rawPts[rawPts.length - 1].y);
+          if (endDist > maxDim * 0.65) {
+            return false;
+          }
+
+          const simplified = rdpSimplify(rawPts, maxDim * 0.105);
+          if (simplified.length < 5 || simplified.length > 9) {
+            return false;
+          }
+
+          // Считаем количество резких острых разворотов (лучей звезды)
+          let sharpTurns = 0;
+          for (let i = 1; i < simplified.length - 1; i++) {
+            const v1x = simplified[i].x - simplified[i - 1].x;
+            const v1y = simplified[i].y - simplified[i - 1].y;
+            const v2x = simplified[i + 1].x - simplified[i].x;
+            const v2y = simplified[i + 1].y - simplified[i].y;
+            const m1 = Math.hypot(v1x, v1y);
+            const m2 = Math.hypot(v2x, v2y);
+            if (m1 > 10 && m2 > 10) {
+              const cosA = (v1x * v2x + v1y * v2y) / (m1 * m2);
+              // Поворот направления > ~95 градусов (острая вершина звезды)
+              if (cosA < -0.08) sharpTurns++;
+            }
+          }
+          if (sharpTurns < 4 || sharpTurns > 6) {
+            return false;
+          }
+
+          // У нарисованной звезды отрезки пересекаются минимум 2 раза (в отличие от круга или квадрата)
+          let intersections = 0;
+          for (let i = 0; i < simplified.length - 1; i++) {
+            for (let j = i + 2; j < simplified.length - 1; j++) {
+              if (i === 0 && j === simplified.length - 2) continue;
+              if (segmentsIntersect(simplified[i], simplified[i + 1], simplified[j], simplified[j + 1])) {
+                intersections++;
+              }
+            }
+          }
+          return intersections >= 2;
+        };
+
+        const drawTrail = (pts) => {
+          clearCanvas();
+          if (pts.length < 2) return;
+          ctx.save();
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.strokeStyle = "rgba(251, 191, 36, 0.85)";
+          ctx.shadowColor = "rgba(245, 158, 11, 0.9)";
+          ctx.shadowBlur = 10;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(pts[0].x, pts[0].y);
+          for (let i = 1; i < pts.length; i++) {
+            ctx.lineTo(pts[i].x, pts[i].y);
+          }
+          ctx.stroke();
+          ctx.restore();
+        };
+
+        const canStartGesture = (target) => {
+          if (!target || !target.closest) return true;
+          if (target.closest("input, textarea, select, option, button, a, .app-tile, .comm-fab-wrap, .modal-card, .chat-drawer, .chat-messages")) {
+            return false;
+          }
+          // Не мешаем скроллу внутри открытого модуля
+          if (appState.activeModule && target.closest(".module-view")) {
+            return false;
+          }
+          return true;
+        };
+
+        window.addEventListener("pointerdown", (e) => {
+          if (e.button !== undefined && e.button !== 0 && e.pointerType === "mouse") return;
+          if (adminModal && adminModal.classList.contains("open")) return;
+          if (!canStartGesture(e.target)) return;
+          if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
+          isDrawing = true;
+          activePointerId = e.pointerId;
+          points = [{ x: e.clientX, y: e.clientY }];
+        }, { passive: true });
+
+        window.addEventListener("pointermove", (e) => {
+          if (!isDrawing || e.pointerId !== activePointerId) return;
+          const prev = points[points.length - 1];
+          if (!prev || Math.hypot(e.clientX - prev.x, e.clientY - prev.y) >= 6) {
+            points.push({ x: e.clientX, y: e.clientY });
+          }
+          if (points.length >= 5) {
+            drawTrail(points);
+          }
+        }, { passive: true });
+
+        const finishGesture = (e) => {
+          if (!isDrawing || (e.pointerId !== undefined && e.pointerId !== activePointerId)) return;
+          isDrawing = false;
+          activePointerId = null;
+          const captured = points.slice();
+          points = [];
+          fadeTimer = setTimeout(clearCanvas, 260);
+          if (isFivePointStarGesture(captured)) {
+            openAdminModal();
+          }
+        };
+
+        window.addEventListener("pointerup", finishGesture, { passive: true });
+        window.addEventListener("pointercancel", finishGesture, { passive: true });
+      };
+      initStarGestureRecognizer();
+
       // Закрытие меню и модалок по Escape
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
           setCommMenuOpen(false);
           closeSettingsModal();
+          closeAdminModal();
           if (resetModal) resetModal.classList.remove("open");
           closePhoneModal();
           closeDrawerChat();
@@ -3733,8 +4670,12 @@
       let lastTouchY = 0;
 
       const resetWindowScroll = () => {
-        if (window.innerWidth <= 640 && (window.scrollY !== 0 || window.scrollX !== 0)) {
-          window.scrollTo(0, 0);
+        if (window.innerWidth <= 640) {
+          if (window.scrollY !== 0 || window.scrollX !== 0) {
+            window.scrollTo(0, 0);
+          }
+          if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
+          if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
         }
       };
 
@@ -10146,7 +11087,9 @@
                         setProfile(prev => ({ ...prev, ...loadedProfile }));
                     }
                     if (loadedMonths && typeof loadedMonths === 'object') {
-                        setMonths(prev => ({ ...prev, ...loadedMonths }));
+                        const cleanMonths = { ...loadedMonths };
+                        delete cleanMonths.__routes_state__;
+                        setMonths(prev => ({ ...prev, ...cleanMonths }));
 
                         // Автоматически добавляем непустые месяцы ТОЛЬКО если expert_report_open_tabs отсутствует в localStorage (первый вход)
                         const hasSavedTabs = (() => {
@@ -11101,19 +12044,35 @@
                         {/* ══ ШАПКА (скруглённая карточка с фирменным градиентом) ══ */}
                         <header className={`rounded-2xl border shadow-lg p-4 sm:px-5 sm:py-4 shrink-0 transition-all text-white ${headerGradient}`}>
                             <div className="flex items-center justify-between gap-3 flex-wrap">
-                                {/* Заголовок + живое время */}
-                                <div>
-                                    <h1
-                                        className="text-xl sm:text-2xl font-black text-white tracking-wide select-none"
-                                        onClick={handleTitleClick}
-                                        style={{ cursor: 'default' }}
+                                {/* Домик + заголовок + живое время */}
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => { if (typeof window.navigateHomeWithSync === 'function') window.navigateHomeWithSync(); else if (typeof window.backToHub === 'function') window.backToHub(); }}
+                                        className={`p-1.5 -ml-1 rounded-xl hover:bg-white/15 active:scale-95 transition-all flex items-center justify-center shrink-0 ${
+                                            theme === 'dark' ? 'text-[#FFB300]' : theme === 'newyear' ? 'text-[#FBBF24]' : 'text-white'
+                                        }`}
+                                        title="Домой"
+                                        aria-label="Домой"
                                     >
-                                        Автоотчет
-                                    </h1>
-                                    <div className="text-xs sm:text-sm mt-1 font-mono flex items-center gap-1.5 text-white/90">
-                                        <span>{formatDate(now)}</span>
-                                        <span className="opacity-50 mx-1.5">|</span>
-                                        <span className="font-semibold text-white">{formatTime(now)}</span>
+                                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M3 10.5L12 3l9 7.5" />
+                                            <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" />
+                                        </svg>
+                                    </button>
+                                    <div>
+                                        <h1
+                                            className="text-xl sm:text-2xl font-black text-white tracking-wide select-none"
+                                            onClick={handleTitleClick}
+                                            style={{ cursor: 'default' }}
+                                        >
+                                            Автоотчет
+                                        </h1>
+                                        <div className="text-xs sm:text-sm mt-1 font-mono flex items-center gap-1.5 text-white/90">
+                                            <span>{formatDate(now)}</span>
+                                            <span className="opacity-50 mx-1.5">|</span>
+                                            <span className="font-semibold text-white">{formatTime(now)}</span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -13489,40 +14448,365 @@
         const s = String(date.getSeconds()).padStart(2, '0');
         return `${h}:${min}:${s}`;
       };
-      routesSyncRef.current = async () => {
-        const u = window.__EXPERT_USER__ || hubSession;
-        const phone = String((u && u.phone) || '').replace(/\D/g, '');
+      const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+      useEffect(() => {
+        let blurTimer = null;
+        const baseHeight = window.innerHeight;
+        const isEditableEl = (el) => {
+          if (!el || !el.tagName) return false;
+          const tag = el.tagName.toUpperCase();
+          if (tag === 'TEXTAREA' || tag === 'SELECT') return true;
+          if (tag === 'INPUT') {
+            const tp = String(el.type || 'text').toLowerCase();
+            return !['checkbox', 'radio', 'button', 'submit', 'file', 'range', 'color'].includes(tp);
+          }
+          return false;
+        };
+
+        const updateKbState = () => {
+          const active = document.activeElement;
+          const focusedEditable = isEditableEl(active) && Boolean(active.closest && active.closest('#routes-root'));
+          const vvShrink = window.visualViewport ? (baseHeight - window.visualViewport.height > 140) : false;
+          setIsKeyboardOpen(Boolean(focusedEditable || vvShrink));
+        };
+
+        const onFocusIn = (e) => {
+          if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; }
+          if (isEditableEl(e.target) && e.target.closest && e.target.closest('#routes-root')) {
+            setIsKeyboardOpen(true);
+          }
+        };
+
+        const onFocusOut = () => {
+          if (blurTimer) clearTimeout(blurTimer);
+          blurTimer = setTimeout(updateKbState, 120);
+        };
+
+        document.addEventListener('focusin', onFocusIn);
+        document.addEventListener('focusout', onFocusOut);
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener('resize', updateKbState);
+        }
+        return () => {
+          if (blurTimer) clearTimeout(blurTimer);
+          document.removeEventListener('focusin', onFocusIn);
+          document.removeEventListener('focusout', onFocusOut);
+          if (window.visualViewport) {
+            window.visualViewport.removeEventListener('resize', updateKbState);
+          }
+        };
+      }, []);
+
+      const routesGasModeRef = useRef('auto'); // 'auto' | 'native' | 'fallback' | 'unsupported'
+      const isRoutesHydratingRef = useRef(false);
+      const hasMountedRoutesRef = useRef(false);
+      const routesDirtyRef = useRef(false);
+      const routesDebounceRef = useRef(null);
+      const lastCloudSyncedAtRef = useRef(0);
+      const localRoutesUpdatedAtRef = useRef((() => {
+        try {
+          return Number(localStorage.getItem('expert_route_cloud_updated_at') || 0) || 0;
+        } catch (e) { return 0; }
+      })());
+
+      const getRoutesAuth = () => {
+        const u = window.__EXPERT_USER__ || hubSession || (() => {
+          try {
+            const raw = localStorage.getItem('expert_hub_session_v1');
+            return raw ? JSON.parse(raw) : null;
+          } catch (e) { return null; }
+        })();
+        const rawDigits = String((u && u.phone) || '').replace(/\D/g, '');
+        const phone = rawDigits.length === 10 ? ('7' + rawDigits) : (rawDigits.length === 11 && rawDigits[0] === '8' ? ('7' + rawDigits.slice(1)) : rawDigits.slice(0, 11));
         const pin = String((u && u.pin) || '').replace(/\D/g, '').slice(0, 4);
         const gasUrl = (window.EXPERT_CONFIG && window.EXPERT_CONFIG.gasUrl) || '';
-        if (!phone || phone.length !== 11 || !pin || pin.length !== 4 || !gasUrl) return;
+        return { phone, pin, gasUrl };
+      };
+
+      const mergeRouteHistories = (localHist, cloudHist) => {
+        const merged = { ...(localHist || {}) };
+        if (!cloudHist || typeof cloudHist !== 'object') return merged;
+        Object.keys(cloudHist).forEach((dateKey) => {
+          const cloudEntry = cloudHist[dateKey];
+          if (!cloudEntry || typeof cloudEntry !== 'object') return;
+          const localEntry = merged[dateKey];
+          if (!localEntry || typeof localEntry !== 'object') {
+            merged[dateKey] = cloudEntry;
+            return;
+          }
+          const cloudTs = Number(cloudEntry.updatedAt || cloudEntry.savedAt || 0) || 0;
+          const localTs = Number(localEntry.updatedAt || localEntry.savedAt || 0) || 0;
+          if (cloudTs > localTs) {
+            merged[dateKey] = cloudEntry;
+          } else if (cloudTs === localTs) {
+            const cloudPtsLen = Array.isArray(cloudEntry.points) ? cloudEntry.points.length : 0;
+            const localPtsLen = Array.isArray(localEntry.points) ? localEntry.points.length : 0;
+            if (cloudPtsLen > localPtsLen) {
+              merged[dateKey] = cloudEntry;
+            }
+          }
+        });
+        return merged;
+      };
+
+      const applyCloudRoutesState = (cloudState) => {
+        if (!cloudState || typeof cloudState !== 'object') return false;
+        const cloudUpdatedAt = Number(cloudState.updatedAt) || 0;
+        const localUpdatedAt = localRoutesUpdatedAtRef.current || 0;
+        const localIsEmpty = (!Array.isArray(expertPoints) || expertPoints.length === 0);
+        const cloudHasPoints = Array.isArray(cloudState.expertPoints) && cloudState.expertPoints.length > 0;
+        const shouldApplyActiveState = (cloudUpdatedAt > localUpdatedAt) || (localIsEmpty && cloudHasPoints);
+
+        isRoutesHydratingRef.current = true;
+        try {
+          if (cloudState.routeHistory && typeof cloudState.routeHistory === 'object') {
+            setRouteHistory(prev => mergeRouteHistories(prev, cloudState.routeHistory));
+          }
+
+          if (shouldApplyActiveState) {
+            if (cloudState.appRole === 'expert' || cloudState.appRole === 'dispatcher') {
+              setAppRole(cloudState.appRole);
+              appRoleRef.current = cloudState.appRole;
+            }
+            if (Array.isArray(cloudState.expertPoints)) {
+              setExpertPoints(cloudState.expertPoints);
+            }
+            if (Array.isArray(cloudState.dispatcherExperts) && cloudState.dispatcherExperts.length > 0) {
+              setDispatcherExperts(cloudState.dispatcherExperts);
+            }
+            if (cloudState.activeExpertId) {
+              setActiveExpertId(cloudState.activeExpertId);
+              activeExpertIdRef.current = cloudState.activeExpertId;
+            }
+            if (cloudState.startType) setStartType(cloudState.startType);
+            if (cloudState.customStart !== undefined) setCustomStart(cloudState.customStart);
+            if (cloudState.returnToStart !== undefined) setReturnToStart(!!cloudState.returnToStart);
+            if (cloudState.sourceMode) {
+              setSourceMode(cloudState.sourceMode);
+              sourceModeRef.current = cloudState.sourceMode;
+            }
+            const syncTs = cloudUpdatedAt || Date.now();
+            localRoutesUpdatedAtRef.current = syncTs;
+            lastCloudSyncedAtRef.current = syncTs;
+            try { localStorage.setItem('expert_route_cloud_updated_at', String(syncTs)); } catch (e) {}
+          }
+        } finally {
+          setTimeout(() => {
+            isRoutesHydratingRef.current = false;
+          }, 500);
+        }
+        return shouldApplyActiveState;
+      };
+
+      const loadRoutesFromCloud = async ({ silent = true } = {}) => {
+        const { phone, pin, gasUrl } = getRoutesAuth();
+        if (!phone || phone.length !== 11 || !pin || pin.length !== 4 || !gasUrl) return false;
+        if (routesGasModeRef.current === 'unsupported') return false;
+
+        const postGas = async (bodyObj) => {
+          const res = await fetch(gasUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(bodyObj)
+          });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return await res.json();
+        };
+
+        const isUnknownAction = (resp) => {
+          const msg = String((resp && resp.error) || '').toLowerCase();
+          return resp && resp.ok === false && (msg.includes('неизвестное действие') || msg.includes('unknown action'));
+        };
+
+        try {
+          let cloudState = null;
+          if (routesGasModeRef.current !== 'fallback') {
+            const nativeRes = await postGas({ action: 'routesLoad', userId: phone, pin });
+            if (isUnknownAction(nativeRes)) {
+              routesGasModeRef.current = 'fallback';
+            } else {
+              routesGasModeRef.current = 'native';
+              if (nativeRes && nativeRes.ok && nativeRes.state) {
+                cloudState = nativeRes.state;
+              }
+            }
+          }
+
+          if (!cloudState && routesGasModeRef.current === 'fallback') {
+            const fbRes = await postGas({ action: 'loadUserData', userId: phone, pin });
+            if (isUnknownAction(fbRes)) {
+              routesGasModeRef.current = 'unsupported';
+              console.warn('[RoutesCloud] Сервер GAS ещё не обновлён под синхронизацию маршрутов (обновите Code.gs в Google Apps Script).');
+              return false;
+            }
+            const monthsMap = (fbRes && fbRes.months) || (fbRes && fbRes.data && fbRes.data.months) || {};
+            let rawRoutes = monthsMap['__routes_state__'];
+            if (typeof rawRoutes === 'string') {
+              try { rawRoutes = JSON.parse(rawRoutes); } catch (e) { rawRoutes = null; }
+            }
+            if (rawRoutes && typeof rawRoutes === 'object') {
+              cloudState = rawRoutes;
+            }
+          }
+
+          if (cloudState) {
+            const applied = applyCloudRoutesState(cloudState);
+            if (applied && !silent) {
+              setSaveToast('Маршруты обновлены из облака ☁️');
+              setTimeout(() => setSaveToast(''), 2500);
+            }
+            return true;
+          }
+        } catch (err) {
+          console.warn('[RoutesCloud] Ошибка загрузки маршрутов:', err);
+        }
+        return false;
+      };
+
+      const saveRoutesToCloud = async (force = false) => {
+        const { phone, pin, gasUrl } = getRoutesAuth();
+        if (!phone || phone.length !== 11 || !pin || pin.length !== 4 || !gasUrl) return false;
+        if (!force && !routesDirtyRef.current) return true;
+        if (routesGasModeRef.current === 'unsupported') return { ok: false, serverNeedsUpdate: true };
+
+        const nowTs = localRoutesUpdatedAtRef.current || Date.now();
+        localRoutesUpdatedAtRef.current = nowTs;
+        try { localStorage.setItem('expert_route_cloud_updated_at', String(nowTs)); } catch (e) {}
 
         const statePayload = {
+          version: 2,
+          updatedAt: nowTs,
           appRole: appRoleRef.current,
           expertPoints,
           dispatcherExperts,
-          activeExpertId,
+          activeExpertId: activeExpertIdRef.current,
           startType,
           customStart,
           returnToStart,
-          sourceMode,
+          sourceMode: sourceModeRef.current,
           routeHistory
         };
 
-        const res = await fetch(gasUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
+        const postGas = async (bodyObj) => {
+          const res = await fetch(gasUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(bodyObj)
+          });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return await res.json();
+        };
+
+        const isUnknownAction = (resp) => {
+          const msg = String((resp && resp.error) || '').toLowerCase();
+          return resp && resp.ok === false && (msg.includes('неизвестное действие') || msg.includes('unknown action'));
+        };
+
+        let data = null;
+        if (routesGasModeRef.current !== 'fallback') {
+          data = await postGas({
             action: 'routesSave',
             userId: phone,
             pin,
             state: statePayload
-          })
-        });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
+          });
+          if (isUnknownAction(data)) {
+            routesGasModeRef.current = 'fallback';
+          } else {
+            routesGasModeRef.current = 'native';
+          }
+        }
+
+        if (routesGasModeRef.current === 'fallback') {
+          data = await postGas({
+            action: 'saveMonth',
+            userId: phone,
+            pin,
+            yearMonth: '__routes_state__',
+            monthData: statePayload,
+            summary: { updatedAt: nowTs }
+          });
+          if (isUnknownAction(data)) {
+            routesGasModeRef.current = 'unsupported';
+            console.warn('[RoutesCloud] На сервере GAS отсутствует routesSave (обновите Code.gs).');
+            return { ok: false, serverNeedsUpdate: true };
+          }
+        }
+
         if (data && data.ok === false && data.error) {
           throw new Error(data.error);
         }
+
+        routesDirtyRef.current = false;
+        lastCloudSyncedAtRef.current = nowTs;
+        return true;
+      };
+
+      const loadRoutesRef = useRef(null);
+      loadRoutesRef.current = loadRoutesFromCloud;
+
+      useEffect(() => {
+        if (hubSession && hubSession.phone && hubSession.pin) {
+          loadRoutesRef.current && loadRoutesRef.current({ silent: true });
+        }
+      }, [hubSession]);
+
+      useEffect(() => {
+        const onModuleOpened = (e) => {
+          if (e && e.detail === 'routes' && loadRoutesRef.current) {
+            loadRoutesRef.current({ silent: false });
+          }
+        };
+        const onVisibility = () => {
+          if (document.visibilityState === 'visible' && loadRoutesRef.current) {
+            const modContainer = document.getElementById('moduleContainer-routes');
+            if (modContainer && modContainer.style.display !== 'none') {
+              loadRoutesRef.current({ silent: true });
+            }
+          }
+        };
+        window.addEventListener('expert:module_opened', onModuleOpened);
+        document.addEventListener('visibilitychange', onVisibility);
+        return () => {
+          window.removeEventListener('expert:module_opened', onModuleOpened);
+          document.removeEventListener('visibilitychange', onVisibility);
+        };
+      }, []);
+
+      useEffect(() => {
+        if (!hasMountedRoutesRef.current) {
+          hasMountedRoutesRef.current = true;
+          return;
+        }
+        if (isRoutesHydratingRef.current) return;
+
+        routesDirtyRef.current = true;
+        const ts = Date.now();
+        localRoutesUpdatedAtRef.current = ts;
+        try { localStorage.setItem('expert_route_cloud_updated_at', String(ts)); } catch (e) {}
+
+        if (routesDebounceRef.current) clearTimeout(routesDebounceRef.current);
+        routesDebounceRef.current = setTimeout(() => {
+          saveRoutesToCloud(false).catch((err) => {
+            console.warn('[RoutesCloud] Автосохранение отложено:', err);
+          });
+        }, 1200);
+
+        return () => {
+          if (routesDebounceRef.current) clearTimeout(routesDebounceRef.current);
+        };
+      }, [appRole, expertPoints, dispatcherExperts, activeExpertId, startType, customStart, returnToStart, sourceMode, routeHistory]);
+
+      routesSyncRef.current = async () => {
+        if (routesDebounceRef.current) {
+          clearTimeout(routesDebounceRef.current);
+          routesDebounceRef.current = null;
+        }
+        if (!routesDirtyRef.current && localRoutesUpdatedAtRef.current <= lastCloudSyncedAtRef.current) {
+          return;
+        }
+        return await saveRoutesToCloud(true);
       };
 
       return (
@@ -14208,31 +15492,38 @@
                       'bg-gradient-to-r from-[#3E2723] via-[#5D4037] to-[#3E2723] border-[#8D6E63]/40'
                     )
             }`}>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-black text-white tracking-wide flex items-center gap-2">
-                  <span>Маршрут</span>
-                </h1>
-                <div className="text-xs sm:text-sm mt-1 font-mono flex items-center gap-2 text-white/80">
-                  <span>{formatDate(now)}</span>
-                  <span className="opacity-40">|</span>
-                  <span className="font-semibold text-white">{formatTime(now)}</span>
+              <div className="flex items-center gap-3 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => { if (typeof window.navigateHomeWithSync === 'function') window.navigateHomeWithSync(); else if (typeof window.backToHub === 'function') window.backToHub(); }}
+                  className={`p-1.5 -ml-1 rounded-xl hover:bg-white/15 active:scale-95 transition-all flex items-center justify-center shrink-0 ${
+                    theme === 'dark' ? 'text-[#FFB300]' : theme === 'newyear' ? 'text-[#FBBF24]' : 'text-white'
+                  }`}
+                  title="Домой"
+                  aria-label="Домой"
+                >
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 10.5L12 3l9 7.5" />
+                    <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" />
+                  </svg>
+                </button>
+                <div className="min-w-0">
+                  <h1 className="text-xl sm:text-2xl font-black text-white tracking-wide flex items-center gap-2 truncate">
+                    <span>Маршрут</span>
+                  </h1>
+                  <div className="text-xs sm:text-sm mt-1 font-mono flex items-center gap-2 text-white/80">
+                    <span>{formatDate(now)}</span>
+                    <span className="opacity-40">|</span>
+                    <span className="font-semibold text-white">{formatTime(now)}</span>
+                  </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
-                  onClick={handleNewDay}
-                  type="button"
-                  className="min-h-[48px] px-3.5 py-2 rounded-xl text-[16px] sm:text-sm font-semibold flex items-center justify-center transition-all flex-shrink-0 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white border border-white/20 shadow-sm"
-                  title="Начать новый маршрут и очистить список"
-                >
-                  <span>Новый маршрут</span>
-                </button>
-
-                <button
                   type="button"
                   onClick={() => setShowSettings(true)}
-                  className="min-h-[48px] w-[48px] rounded-xl flex items-center justify-center transition-all flex-shrink-0 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white border border-white/20 shadow-sm"
+                  className="min-h-[44px] w-[44px] rounded-xl flex items-center justify-center transition-all flex-shrink-0 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white border border-white/20 shadow-sm"
                   title="Настройки темы"
                 >
                   <svg className="w-5 h-5 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -14242,6 +15533,21 @@
                 </button>
               </div>
             </header>
+
+            {/* Кнопка «Новый маршрут» аккуратно под шапкой без перекоса */}
+            <div className="mb-3 flex items-center justify-start">
+              <button
+                onClick={handleNewDay}
+                type="button"
+                className={`min-h-[42px] px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-2 transition-all shadow-sm border ${t('bg-[#282B30] hover:bg-[#32363C] text-white border-[#3A3D42]', 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200', 'bg-white hover:bg-pink-50 text-pink-900 border-pink-200', 'bg-[#162032] hover:bg-[#1E2B44] text-blue-50 border-[#253652]', 'bg-white hover:bg-emerald-50 text-emerald-950 border-emerald-200', 'bg-[#241C19] hover:bg-[#2F2420] text-[#F5EBE6] border-[#3E2F2A]', 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200')}`}
+                title="Начать новый маршрут и очистить список"
+              >
+                <svg className="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                <span>Новый маршрут</span>
+              </button>
+            </div>
 
             {/* Панель управления диспетчера: Вкладки экспертов + Карта пересечений */}
             {appRole === 'dispatcher' && (
@@ -15174,8 +16480,8 @@
               )}
             </section>
 
-            {/* 4. Плавающая главная кнопка "Открыть маршрут в Яндекс Картах" */}
-            <footer className={`sticky bottom-2 left-0 right-0 mt-4 mr-[68px] sm:mr-[76px] rounded-2xl backdrop-blur-md border px-3 sm:px-4 py-2.5 z-30 shadow-lg transition-colors ${t('bg-[#101112]/95 border-gray-800', 'bg-white/95 border-slate-200', 'bg-white/95 border-pink-200', 'bg-[#0B132B]/95 border-[#253652]', 'bg-white/95 border-emerald-200', 'bg-[#16110F]/95 border-[#3E2F2A]', 'bg-white/95 border-slate-200')}`}>
+            {/* 4. Плавающая главная кнопка "Открыть маршрут в Яндекс Картах" (открепляется при открытой клавиатуре) */}
+            <footer className={`${isKeyboardOpen ? 'static' : 'sticky bottom-2 z-30'} left-0 right-0 mt-4 mr-[68px] sm:mr-[76px] rounded-2xl backdrop-blur-md border px-3 sm:px-4 py-2.5 shadow-lg transition-colors ${t('bg-[#101112]/95 border-gray-800', 'bg-white/95 border-slate-200', 'bg-white/95 border-pink-200', 'bg-[#0B132B]/95 border-[#253652]', 'bg-white/95 border-emerald-200', 'bg-[#16110F]/95 border-[#3E2F2A]', 'bg-white/95 border-slate-200')}`}>
               <div className="w-full">
                 {appRole === 'dispatcher' ? (
                   <div className="flex items-center gap-2">
@@ -15838,6 +17144,62 @@
                 return res;
             };
 
+            const skladGasModeRef = useRef('auto'); // 'auto' | 'native' | 'legacy_sklad'
+
+            const skladRequest = async ({ mode, phone, pin, payload = null, newOrder = null }) => {
+                const hubGasUrl = (window.EXPERT_CONFIG && window.EXPERT_CONFIG.gasUrl) || '';
+                const legacyGasUrl = GOOGLE_SCRIPT_URL || '';
+
+                const postJson = async (url, bodyObj) => {
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(bodyObj)
+                    });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return await res.json();
+                };
+
+                const callLegacySklad = async () => {
+                    if (!legacyGasUrl || !legacyGasUrl.startsWith('http')) {
+                        throw new Error('Резервный URL склада не настроен');
+                    }
+                    if (mode === 'load') {
+                        const qUrl = `${legacyGasUrl}?phone=${encodeURIComponent(phone)}&pin=${encodeURIComponent(pin)}`;
+                        const res = await fetch(qUrl);
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        return await res.json();
+                    }
+                    return await postJson(legacyGasUrl, {
+                        action: 'skladSave',
+                        phone,
+                        pin,
+                        payload,
+                        newOrder
+                    });
+                };
+
+                if (skladGasModeRef.current === 'legacy_sklad' || !hubGasUrl) {
+                    return await callLegacySklad();
+                }
+
+                const nativeBody = mode === 'load'
+                    ? { action: 'skladLoad', phone, pin }
+                    : { action: 'skladSave', phone, pin, payload, newOrder };
+
+                const nativeRes = await postJson(hubGasUrl, nativeBody);
+                const errStr = String((nativeRes && (nativeRes.error || nativeRes.message)) || '').toLowerCase();
+                const isUnknownAction = nativeRes && nativeRes.ok === false && (errStr.includes('неизвестное действие') || errStr.includes('unknown action'));
+
+                if (isUnknownAction && legacyGasUrl && legacyGasUrl !== hubGasUrl) {
+                    skladGasModeRef.current = 'legacy_sklad';
+                    return await callLegacySklad();
+                }
+
+                skladGasModeRef.current = 'native';
+                return nativeRes;
+            };
+
             const syncToCloud = async (extraOrder = null, silent = false) => {
                 const cleanPhone = normalizePhone(userProfile.phone);
                 const cleanPin = String(userProfile.pin || '').replace(/\D/g, '').slice(0, 4);
@@ -15858,14 +17220,16 @@
                         orderHistory,
                         orderCounter
                     };
-                    const res = await fetch(targetGasUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify({ action: 'skladSave', phone: cleanPhone, pin: cleanPin, payload, newOrder: extraOrder })
+                    const data = await skladRequest({
+                        mode: 'save',
+                        phone: cleanPhone,
+                        pin: cleanPin,
+                        payload,
+                        newOrder: extraOrder
                     });
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    const data = await res.json();
-                    if (data && data.ok === false) throw new Error(data.error || 'Ошибка сохранения');
+                    if (data && (data.ok === false || data.status === 'error')) {
+                        throw new Error(data.error || data.message || 'Ошибка сохранения');
+                    }
                     if (!silent) showToast('Данные сохранены в облаке ☁️');
                     return true;
                 } catch (e) {
@@ -15883,12 +17247,11 @@
                 if (cleanPhone.length !== 11 || cleanPin.length !== 4 || !targetGasUrl.startsWith('http')) return false;
                 setIsSyncing(true);
                 try {
-                    const res = await fetch(targetGasUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify({ action: 'skladLoad', phone: cleanPhone, pin: cleanPin })
+                    const json = await skladRequest({
+                        mode: 'load',
+                        phone: cleanPhone,
+                        pin: cleanPin
                     });
-                    const json = await res.json();
 
                     if (json.status === 'wrong_pin') {
                         setIsAuthVerified(false);
@@ -15899,7 +17262,8 @@
                         return false;
                     }
 
-                    if (json.status === 'ok' && json.payload) {
+                    const hasPayloadData = json.payload && typeof json.payload === 'object' && Object.keys(json.payload).length > 0;
+                    if (json.status === 'ok' && hasPayloadData) {
                         const d = json.payload;
                         // Тема синхронизируется с каркасом хаба
                         if (Array.isArray(d.favorites)) setFavorites(d.favorites);
@@ -15937,7 +17301,7 @@
                         return true;
                     }
 
-                    if (json.status === 'not_found') {
+                    if (json.status === 'not_found' || (json.status === 'ok' && !hasPayloadData)) {
                         lastCheckedPhoneRef.current = `${cleanPhone}_${cleanPin}`;
                         setIsAuthVerified(true);
                         localStorage.setItem('sklad_auth_verified', 'true');
@@ -16437,7 +17801,7 @@
                     )}
 
                     <div className="w-full py-1 sm:py-3 flex flex-col space-y-3">
-                        <header className={`flex-shrink-0 px-4 py-3 flex items-center justify-between shadow-lg border z-10 text-white rounded-2xl ${
+                        <header className={`rounded-2xl border shadow-lg p-4 sm:px-5 sm:py-4 flex-shrink-0 flex items-center justify-between gap-3 z-10 text-white transition-all ${
                             theme === 'pastel'
                                 ? 'bg-gradient-to-r from-[#D96B78]/85 via-[#4AA89B]/85 to-[#6366C6]/85 backdrop-blur-md border-b border-white/50 text-white shadow-lg'
                                 : theme === 'newyear' 
@@ -16453,14 +17817,30 @@
                                             'bg-gradient-to-r from-[#3E2723] via-[#5D4037] to-[#3E2723] border-[#8D6E63]/40'
                                         )
                         }`}>
-                        <div className="flex items-center space-x-3">
-                            <div className="flex flex-col">
-                                <div className="flex items-center space-x-2">
-                                    <span className="text-[11px] font-extrabold tracking-wider font-mono text-white/85">{dateStr}</span>
+                        <div className="flex items-center gap-3 min-w-0">
+                            <button
+                                type="button"
+                                onClick={() => { if (typeof window.navigateHomeWithSync === 'function') window.navigateHomeWithSync(); else if (typeof window.backToHub === 'function') window.backToHub(); }}
+                                className={`p-1.5 -ml-1 rounded-xl hover:bg-white/15 active:scale-95 transition-all flex items-center justify-center shrink-0 ${
+                                    theme === 'dark' ? 'text-[#FFB300]' : theme === 'newyear' ? 'text-[#FBBF24]' : 'text-white'
+                                }`}
+                                title="Домой"
+                                aria-label="Домой"
+                            >
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M3 10.5L12 3l9 7.5" />
+                                    <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" />
+                                </svg>
+                            </button>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <h1 className="text-lg sm:text-2xl font-black text-white tracking-wide select-none truncate">
+                                        Заявка на склад
+                                    </h1>
                                     {isEditMode && (
                                         <button 
                                             onClick={() => setIsEditMode(false)}
-                                            className="flex items-center px-2 py-0.5 rounded text-[10px] font-black tracking-widest bg-red-600 text-white shadow hover:bg-red-700 transition-colors animate-pulse"
+                                            className="flex items-center px-2 py-0.5 rounded text-[10px] font-black tracking-widest bg-red-600 text-white shadow hover:bg-red-700 transition-colors animate-pulse shrink-0"
                                             title="Отключить режим редактирования"
                                         >
                                             <Icon name="pen-off" size={12} className="mr-1" />
@@ -16468,11 +17848,11 @@
                                         </button>
                                     )}
                                 </div>
-                                <span className="text-[15px] font-black tracking-widest font-mono text-white flex items-center">
-                                    {theme === 'newyear' && <span className="mr-1.5 text-sm animate-pulse">🎄</span>}
-                                    {timeStr}
-                                    {theme === 'newyear' && <span className="ml-1.5 text-xs text-[#FBBF24]">✨</span>}
-                                </span>
+                                <div className="text-xs sm:text-sm mt-1 font-mono flex items-center gap-1.5 text-white/90">
+                                    <span>{dateStr}</span>
+                                    <span className="opacity-50 mx-1">|</span>
+                                    <span className="font-semibold text-white">{timeStr}</span>
+                                </div>
                             </div>
                         </div>
                         <div className="flex items-center space-x-1.5 sm:space-x-2">

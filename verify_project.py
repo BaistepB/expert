@@ -1,7 +1,11 @@
+import json
 import os
 import re
 import subprocess
 import sys
+import urllib.error
+import urllib.request
+
 
 def check_brackets(text, filename=""):
     # Ignore strings and comments for clean JS checking
@@ -11,19 +15,19 @@ def check_brackets(text, filename=""):
     pairs = {')': '(', ']': '[', '}': '{'}
     opening = set(pairs.values())
     closing = set(pairs.keys())
-    
+
     # Simple tokenizer ignoring strings and comments
     i = 0
     n = len(text)
     line = 1
     col = 1
-    
+
     in_single_quote = False
     in_double_quote = False
     in_backtick = False
     in_line_comment = False
     in_block_comment = False
-    
+
     while i < n:
         c = text[i]
         if c == '\n':
@@ -32,20 +36,20 @@ def check_brackets(text, filename=""):
             if in_line_comment:
                 in_line_comment = False
         col += 1
-        
+
         # Handle comments & strings
         if in_line_comment:
             i += 1
             continue
         if in_block_comment:
-            if c == '*' and i + 1 < n and text[i+1] == '/':
+            if c == '*' and i + 1 < n and text[i + 1] == '/':
                 in_block_comment = False
                 i += 2
                 col += 1
                 continue
             i += 1
             continue
-            
+
         if in_single_quote:
             if c == '\\':
                 i += 2
@@ -55,7 +59,7 @@ def check_brackets(text, filename=""):
                 in_single_quote = False
             i += 1
             continue
-            
+
         if in_double_quote:
             if c == '\\':
                 i += 2
@@ -65,7 +69,7 @@ def check_brackets(text, filename=""):
                 in_double_quote = False
             i += 1
             continue
-            
+
         if in_backtick:
             if c == '\\':
                 i += 2
@@ -75,15 +79,15 @@ def check_brackets(text, filename=""):
                 in_backtick = False
             i += 1
             continue
-            
+
         # Check start of comment or regex
         if c == '/' and i + 1 < n:
-            if text[i+1] == '/':
+            if text[i + 1] == '/':
                 in_line_comment = True
                 i += 2
                 col += 1
                 continue
-            elif text[i+1] == '*':
+            elif text[i + 1] == '*':
                 in_block_comment = True
                 i += 2
                 col += 1
@@ -128,7 +132,7 @@ def check_brackets(text, filename=""):
                         i += 1
                         col += 1
                     continue
-                
+
         if c == "'":
             in_single_quote = True
             i += 1
@@ -141,7 +145,7 @@ def check_brackets(text, filename=""):
             in_backtick = True
             i += 1
             continue
-            
+
         # Check brackets
         if c in opening:
             stack.append((c, line, col, i))
@@ -152,54 +156,104 @@ def check_brackets(text, filename=""):
             last_open, o_line, o_col, _ = stack.pop()
             if last_open != expected:
                 return False, f"Несоответствие скобок: открыта '{last_open}' ({filename}:{o_line}:{o_col}), но закрыта '{c}' ({filename}:{line}:{col})"
-                
+
         i += 1
-        
+
     if stack:
         last_open, o_line, o_col, _ = stack[-1]
         return False, f"Осталась незакрытая скобка '{last_open}' в {filename}:{o_line}:{o_col}"
-        
+
     return True, "Баланс скобок соблюдён"
+
+
+def send_telegram_notification(message):
+    token = os.environ.get("TG_BOT_TOKEN", "").strip()
+    chat_id = os.environ.get("TG_CHAT_ID", "").strip()
+
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".tg_env")
+    if (not token or not chat_id) and os.path.exists(env_path):
+        try:
+            with open(env_path, "r", encoding="utf-8") as env_file:
+                for raw_line in env_file:
+                    line = raw_line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    key, val = line.split("=", 1)
+                    key = key.strip()
+                    val = val.strip().strip('"').strip("'")
+                    if key == "TG_BOT_TOKEN" and not token:
+                        token = val
+                    elif key == "TG_CHAT_ID" and not chat_id:
+                        chat_id = val
+        except OSError as exc:
+            print(f"[TG] Ошибка чтения .tg_env: {exc}")
+
+    if not token or not chat_id:
+        print("[TG] TG_BOT_TOKEN или TG_CHAT_ID не заданы — уведомление пропущено.")
+        return False
+
+    api_url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = json.dumps({"chat_id": chat_id, "text": message}).encode("utf-8")
+    req = urllib.request.Request(
+        api_url,
+        data=payload,
+        headers={"Content-Type": "application/json; charset=utf-8"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+            data = json.loads(body)
+            if data.get("ok"):
+                print("[TG] Уведомление успешно отправлено в Telegram.")
+                return True
+            else:
+                print(f"[TG] Ошибка API Telegram: {data}")
+                return False
+    except Exception as exc:
+        print(f"[TG] Ошибка отправки уведомления в Telegram: {exc}")
+        return False
+
 
 def verify():
     all_ok = True
-    files = ["index.html", "google_apps_script.js", "Code.gs"]
-    
     print("=== 1. ПРОВЕРКА БАЛАНСА СКОБОК ===")
-    for f in files:
+    for f in ["index.html", "google_apps_script.js", "Code.gs"]:
         if not os.path.exists(f):
             print(f"[FAIL] Файл не найден: {f}")
             all_ok = False
             continue
-            
+
         with open(f, "r", encoding="utf-8") as fp:
             content = fp.read()
-            
+
         if f.endswith(".html"):
-            # Проверяем ванильный JS-скрипт хаба
             match = re.search(r"<script>(.*?)</script>", content, re.DOTALL)
             if match:
                 js_content = match.group(1)
                 ok, msg = check_brackets(js_content, f + " [JS-хаб]")
                 print(f"{f} [JS-хаб]: {'OK' if ok else 'FAIL'} - {msg}")
-                if not ok: all_ok = False
-            
-            # Проверяем Babel/React скрипт модуля Автоотчет
-            babel_match = re.search(r'<script type="text/babel">(.*?)</script>', content, re.DOTALL)
-            if babel_match:
-                babel_content = babel_match.group(1)
-                ok, msg = check_brackets(babel_content, f + " [Babel-Автоотчет]")
-                print(f"{f} [Babel-Автоотчет]: {'OK' if ok else 'FAIL'} - {msg}")
-                if not ok: all_ok = False
+                if not ok:
+                    all_ok = False
+
+            babel_blocks = re.findall(r'<script type="text/babel">(.*?)</script>', content, re.DOTALL)
+            for b_idx, babel_content in enumerate(babel_blocks, start=1):
+                ok, msg = check_brackets(babel_content, f"{f} [Babel-блок #{b_idx}]")
+                print(f"{f} [Babel-блок #{b_idx}]: {'OK' if ok else 'FAIL'} - {msg}")
+                if not ok:
+                    all_ok = False
 
             ok, msg = check_brackets(content, f)
             print(f"{f} [полный файл]: {'OK' if ok else 'FAIL'} - {msg}")
-            if not ok: all_ok = False
+            if not ok:
+                all_ok = False
         else:
             ok, msg = check_brackets(content, f)
             print(f"{f}: {'OK' if ok else 'FAIL'} - {msg}")
-            if not ok: all_ok = False
-            
+            if not ok:
+                all_ok = False
+
     print("\n=== 2. ПРОВЕРКА ЗАПРЕТА localStorage.clear() ===")
     for f in ["index.html"]:
         with open(f, "r", encoding="utf-8") as fp:
@@ -209,7 +263,7 @@ def verify():
             all_ok = False
         else:
             print(f"[OK] Вызов localStorage.clear() отсутствует в {f}.")
-            
+
     print("\n=== 3. ПРОВЕРКА ЗАЩИТЫ КЛЮЧА expert_app_route_history_v1 ===")
     for f in ["index.html"]:
         with open(f, "r", encoding="utf-8") as fp:
@@ -219,7 +273,7 @@ def verify():
         else:
             print(f"[FAIL] Защита ключа 'expert_app_route_history_v1' не найдена в {f}!")
             all_ok = False
-            
+
     print("\n=== 4. ПРОВЕРКА ЗАГОЛОВКА Content-Type: text/plain;charset=utf-8 ===")
     for f in ["index.html"]:
         with open(f, "r", encoding="utf-8") as fp:
@@ -237,8 +291,7 @@ def verify():
     else:
         print(f"[FAIL] Ошибка в google_apps_script.js:\n{res1.stderr}")
         all_ok = False
-        
-    # Check Code.gs by testing syntax via node
+
     with open("Code.gs", "r", encoding="utf-8") as fp:
         gs_content = fp.read()
     with open("_temp_gs.js", "w", encoding="utf-8") as fp:
@@ -252,7 +305,6 @@ def verify():
     if os.path.exists("_temp_gs.js"):
         os.remove("_temp_gs.js")
 
-    # Extract all inline JS from index.html (excluding Babel) to test with node -c
     with open("index.html", "r", encoding="utf-8") as fp:
         html = fp.read()
     script_blocks = re.findall(r'<script(?![^>]*src)(?![^>]*type=["\']text/babel["\'])[^>]*>(.*?)</script>', html, re.DOTALL)
@@ -271,13 +323,16 @@ def verify():
             all_ok = False
         if os.path.exists(temp_name):
             os.remove(temp_name)
-            
+
     print("\n" + ("=" * 40))
     if all_ok:
         print("ИТОГ: ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ УСПЕШНО!")
+        send_telegram_notification("✅ Проверка проекта «Эксперт» (verify_project.py): все проверки пройдены успешно! Баланс скобок, защита ключей и синтаксис в порядке.")
     else:
         print("ИТОГ: ОБНАРУЖЕНЫ ОШИБКИ!")
+        send_telegram_notification("⚠️ Проверка проекта «Эксперт» (verify_project.py) выявила ошибки. Проверьте лог запуска.")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     verify()
