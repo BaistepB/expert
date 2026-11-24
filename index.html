@@ -426,9 +426,26 @@
     .brand-group {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       cursor: pointer;
       user-select: none;
+    }
+
+    .brand-home-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--topbar-btn-text, var(--topbar-text, var(--text)));
+      transition: transform 0.16s ease, opacity 0.16s ease;
+    }
+
+    .brand-group:hover .brand-home-icon {
+      transform: scale(1.08);
+    }
+
+    .brand-group:active .brand-home-icon {
+      transform: scale(0.95);
     }
 
     .brand-logo {
@@ -802,8 +819,8 @@
     }
 
     @media (max-width: 1120px) and (min-width: 641px) {
-      #mainScreen {
-        padding-right: 88px;
+      #hubChatContainer {
+        margin-right: 68px;
       }
     }
 
@@ -929,11 +946,6 @@
         gap: 4px;
         font-size: 11px;
         border-radius: 8px;
-      }
-
-      #mainScreen {
-        padding-right: 76px;
-        padding-bottom: 24px;
       }
 
       .pin-grid {
@@ -1192,6 +1204,27 @@
     /* Модульный вид и контейнеры */
     .module-view {
       display: none;
+      flex-direction: column;
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 84px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .module-view::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+
+    .module-container,
+    #autoreport-root {
+      width: 100%;
     }
 
     .module-header {
@@ -1748,7 +1781,7 @@
         flex: 1;
         min-height: 0;
         overflow: hidden;
-        padding: 12px 76px 14px 12px;
+        padding: 12px 12px 14px 12px;
         gap: 12px;
       }
       #hubView {
@@ -1760,8 +1793,18 @@
       .module-view {
         flex: 1;
         min-height: 0;
+        width: 100%;
         overflow-y: auto;
+        overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
+        padding-bottom: 84px;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      .module-view::-webkit-scrollbar {
+        display: none;
+        width: 0;
+        height: 0;
       }
       .hub-grid {
         margin: 4px 0;
@@ -1793,6 +1836,7 @@
         padding: 8px 10px;
         gap: 6px;
         margin-bottom: 4px;
+        margin-right: 64px;
       }
       #hubChatContainer .chat-messages {
         min-height: 70px;
@@ -1849,6 +1893,12 @@
     <!-- Шапка приложения -->
     <header class="topbar">
       <div class="brand-group" id="btnBrandHome" title="Домой" aria-label="Домой" role="button" tabindex="0">
+        <span class="brand-home-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5L12 3l9 7.5" />
+            <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" />
+          </svg>
+        </span>
         <div>
           <h1 class="brand-title">Эксперт</h1>
           <div class="brand-sub topbar-live-clock" id="hubLiveDateTime" aria-label="Текущие дата и время">
@@ -2868,7 +2918,7 @@
 
       appState.activeModule = moduleKey;
       document.getElementById("hubView").style.display = "none";
-      document.getElementById("moduleView").style.display = "block";
+      document.getElementById("moduleView").style.display = "flex";
       document.getElementById("btnOpenDrawerChat").style.display = "inline-flex";
       // Заголовок модуля отображается в #moduleActiveBadge, в шапке сохраняются живые дата и время
 
@@ -10959,13 +11009,13 @@
             );
 
             return (
-                <div className={`w-full h-full flex flex-col overflow-y-auto overflow-x-hidden ${appBg}`}>
+                <div className={`w-full flex flex-col overflow-x-hidden no-scrollbar ${appBg}`}>
 
                     {/* Снегопад */}
                     {theme === 'newyear' && <SnowEffect />}
 
-                    {/* Единый центрированный контейнер приложения в стиле «Маршруты» */}
-                    <div className="w-full max-w-3xl mx-auto px-2 sm:px-4 py-2 sm:py-5 space-y-3 flex flex-col">
+                    {/* Единый контейнер приложения на 100% рабочей ширины */}
+                    <div className="w-full py-1 sm:py-3 space-y-3 flex flex-col">
 
                         {/* ══ ШАПКА (скруглённая карточка с фирменным градиентом) ══ */}
                         <header className={`rounded-2xl border shadow-lg p-4 sm:px-5 sm:py-4 shrink-0 transition-all text-white ${headerGradient}`}>
