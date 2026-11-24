@@ -59,6 +59,8 @@
     html[data-theme="expert"],
     body[data-theme="expert"],
     [data-theme="expert"] {
+      --topbar-bg: linear-gradient(135deg, #b91c1c 0%, #dc2626 50%, #991b1b 100%);
+      --topbar-text: #ffffff;
       --bg: #f4f5f7;
       --surface: #ffffff;
       --surface-2: #f8fafc;
@@ -86,6 +88,8 @@
     html[data-theme="expert-dark"],
     body[data-theme="expert-dark"],
     [data-theme="expert-dark"] {
+      --topbar-bg: linear-gradient(135deg, #1f2937 0%, #111827 50%, #7f1d1d 100%);
+      --topbar-text: #ffffff;
       --bg: #101112;
       --surface: #1E2125;
       --surface-2: #282B30;
@@ -111,6 +115,8 @@
     html[data-theme="newyear"],
     body[data-theme="newyear"],
     [data-theme="newyear"] {
+      --topbar-bg: linear-gradient(135deg, #0f382c 0%, #165b44 50%, #1e3a8a 100%);
+      --topbar-text: #ffffff;
       --bg: #0A1912;
       --surface: #11261D;
       --surface-2: #0D1F17;
@@ -136,6 +142,8 @@
     html[data-theme="pastel"],
     body[data-theme="pastel"],
     [data-theme="pastel"] {
+      --topbar-bg: linear-gradient(135deg, #fbcfe8 0%, #c7d2fe 50%, #bae6fd 100%);
+      --topbar-text: #1e293b;
       --bg: linear-gradient(90deg, #FBBBB4 0%, #FBDEB4 25%, #CAFBB4 50%, #B4FBFA 75%, #C6C9FC 100%);
       --surface: rgba(255, 255, 255, 0.85);
       --surface-2: rgba(255, 255, 255, 0.7);
@@ -161,6 +169,8 @@
     html[data-theme="dark"],
     body[data-theme="dark"],
     [data-theme="dark"] {
+      --topbar-bg: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      --topbar-text: #f8fafc;
       --bg: #101112;
       --surface: #1E2125;
       --surface-2: #282B30;
@@ -186,6 +196,8 @@
     html[data-theme="light"],
     body[data-theme="light"],
     [data-theme="light"] {
+      --topbar-bg: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+      --topbar-text: #0f172a;
       --bg: #F0F2F5;
       --surface: #ffffff;
       --surface-2: #f8fafc;
@@ -211,6 +223,8 @@
     html[data-theme="marine"],
     body[data-theme="marine"],
     [data-theme="marine"] {
+      --topbar-bg: linear-gradient(135deg, #0c4a6e 0%, #0284c7 50%, #0369a1 100%);
+      --topbar-text: #ffffff;
       --bg: #0B132B;
       --surface: #131D31;
       --surface-2: #162238;
@@ -236,6 +250,8 @@
     html[data-theme="coffee"],
     body[data-theme="coffee"],
     [data-theme="coffee"] {
+      --topbar-bg: linear-gradient(135deg, #3e2723 0%, #4e342e 50%, #2e1c18 100%);
+      --topbar-text: #ffffff;
       --bg: #16110F;
       --surface: #221A17;
       --surface-2: #241C19;
@@ -261,6 +277,8 @@
     html[data-theme="pink"],
     body[data-theme="pink"],
     [data-theme="pink"] {
+      --topbar-bg: linear-gradient(135deg, #be185d 0%, #db2777 50%, #f472b6 100%);
+      --topbar-text: #ffffff;
       --bg: #fdf2f8;
       --surface: #ffffff;
       --surface-2: #fce7f3;
@@ -286,6 +304,8 @@
     html[data-theme="mint"],
     body[data-theme="mint"],
     [data-theme="mint"] {
+      --topbar-bg: linear-gradient(135deg, #065f46 0%, #059669 50%, #10b981 100%);
+      --topbar-text: #ffffff;
       --bg: #f0fdf4;
       --surface: #ffffff;
       --surface-2: #dcfce7;
@@ -327,6 +347,7 @@
       max-width: 1140px;
       margin: 0 auto;
       min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       flex-direction: column;
       position: relative;
@@ -339,13 +360,14 @@
       justify-content: space-between;
       gap: 14px;
       padding: 12px 20px;
-      background: var(--surface);
+      background: var(--topbar-bg, var(--surface));
+      color: var(--topbar-text, var(--text));
       border-bottom: 1px solid var(--border);
       position: sticky;
       top: 0;
       z-index: 30;
       box-shadow: var(--shadow-sm);
-      transition: background-color 0.2s ease, border-color 0.2s ease;
+      transition: background 0.25s ease, border-color 0.2s ease, color 0.2s ease;
     }
 
     .brand-group {
@@ -556,6 +578,173 @@
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       padding: 24px;
+    }
+
+    /* Стили кнопки «Настройки» в шапке */
+    #btnOpenSettings {
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      border-radius: 12px;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      padding: 0;
+      cursor: pointer;
+      background: rgba(125, 125, 125, 0.16);
+      border: 1px solid rgba(125, 125, 125, 0.25);
+      color: var(--topbar-text, var(--text));
+      transition: transform 0.15s ease, background 0.15s ease;
+      line-height: 1;
+    }
+
+    #btnOpenSettings:hover {
+      background: rgba(125, 125, 125, 0.28);
+      transform: scale(1.05);
+    }
+
+    #btnOpenSettings:active {
+      transform: scale(0.96);
+    }
+
+    /* Расположение оболочки и прижатие чата к низу */
+    #mainScreen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #hubView {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 12px;
+    }
+
+    #hubChatContainer {
+      margin-top: auto;
+      margin-bottom: 12px;
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #hubChatContainer .chat-messages {
+      flex: 0 1 auto;
+      min-height: 140px;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+
+    .chat-form {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .chat-form input {
+      flex: 1 1 auto;
+      min-width: 0;
+      width: auto;
+    }
+
+    .chat-form button,
+    .chat-form .btn {
+      flex-shrink: 0;
+    }
+
+    /* Блок ввода ПИН-кода: 4 отдельных квадрата */
+    .pin-grid {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin: 8px 0 16px;
+      user-select: none;
+    }
+
+    .pin-cell {
+      width: 54px;
+      height: 58px;
+      border-radius: 12px;
+      background: var(--surface-2, var(--surface));
+      border: 2px solid var(--border);
+      color: var(--text);
+      font-size: 24px;
+      font-weight: 800;
+      text-align: center;
+      line-height: 1;
+      padding: 0;
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, transform 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .pin-cell:focus {
+      border-color: var(--border-focus, var(--primary));
+      box-shadow: 0 0 0 3px var(--primary-light, rgba(217, 35, 45, 0.2));
+      background: var(--surface);
+      transform: translateY(-2px);
+    }
+
+    .pin-cell.filled {
+      border-color: var(--border-focus, var(--primary));
+      background: var(--surface);
+    }
+
+    @keyframes pinShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+
+    .pin-grid.pin-error {
+      animation: pinShake 0.45s ease;
+    }
+
+    .pin-grid.pin-error .pin-cell {
+      border-color: var(--danger, #ef4444);
+      background: rgba(239, 68, 68, 0.08);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+    }
+
+    @media (max-width: 640px) {
+      .brand-logo {
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        flex-shrink: 0 !important;
+      }
+
+      .brand-group > div {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .topbar .user-pill,
+      .topbar #btnLogout {
+        display: none !important;
+      }
+
+      #mainScreen {
+        padding-right: 76px;
+        padding-bottom: 24px;
+      }
+
+      .pin-grid {
+        gap: 10px;
+      }
+
+      .pin-cell {
+        width: 48px;
+        height: 52px;
+        font-size: 20px;
+        border-radius: 10px;
+      }
     }
 
     /* Экран авторизации */
@@ -1363,6 +1552,7 @@
   </style>
 </head>
 <body>
+  <div id="hubSnowContainer" style="position:fixed;inset:0;pointer-events:none;z-index:25;overflow:hidden;" aria-hidden="true"></div>
   <div class="app-shell">
     <!-- Шапка приложения -->
     <header class="topbar">
@@ -1375,22 +1565,7 @@
       </div>
 
       <div class="topbar-right">
-        <!-- Компактный переключатель 10 тем оформления -->
-        <div class="theme-selector-wrap" id="themeSelectorWrap">
-          <span class="theme-icon" aria-hidden="true">🎨</span>
-          <select id="hubThemeSelect" class="theme-select" aria-label="Тема оформления" title="Выбор темы оформления">
-            <option value="expert">ЭКСПЕРТ</option>
-            <option value="expert-dark">ЭКСПЕРТ НОЧЬ</option>
-            <option value="newyear">🎄 НОВОГОДНЯЯ</option>
-            <option value="pastel">ПАСТЕЛЬ</option>
-            <option value="dark">ТЁМНАЯ</option>
-            <option value="light">СВЕТЛАЯ</option>
-            <option value="marine">МОРСКАЯ</option>
-            <option value="coffee">КОФЕЙНАЯ</option>
-            <option value="pink">РОЗОВАЯ</option>
-            <option value="mint">МЯТНАЯ</option>
-          </select>
-        </div>
+        <button type="button" id="btnOpenSettings" aria-label="Настройки" title="Настройки">⚙️</button>
 
         <div class="topbar-actions" id="topbarActions" style="display: none;">
           <button type="button" class="btn btn-ghost" id="btnOpenDrawerChat" style="display: none;">💬 Чат</button>
@@ -1406,8 +1581,8 @@
     <!-- Экран авторизации (доступен только неавторизованным) -->
     <section class="auth-wrapper" id="authScreen">
       <div class="auth-card">
-        <h2>Вход в «Эксперт»</h2>
-        <p>Введите номер телефона и 4-значный ПИН-код для доступа к рабочей системе.</p>
+        <h2 id="authCardTitle">Вход в «Эксперт»</h2>
+        <p id="authCardDesc">Введите номер телефона и 4-значный ПИН-код для доступа к рабочей системе.</p>
 
         <form id="loginForm">
           <div class="field">
@@ -1422,29 +1597,28 @@
           </div>
 
           <div class="field">
-            <label for="loginPin">ПИН-код (4 цифры)</label>
-            <input
-              id="loginPin"
-              type="password"
-              inputmode="numeric"
-              maxlength="4"
-              placeholder="••••"
-              required
-            />
+            <label id="loginPinLabel" style="display: block; text-align: center; margin-bottom: 6px;">ПИН-код (4 цифры)</label>
+            <div class="pin-grid" id="loginPinGrid" role="group" aria-label="Ввод 4 цифр ПИН-кода">
+              <input class="pin-cell" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" data-index="0" aria-label="Первая цифра ПИН-кода" />
+              <input class="pin-cell" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" data-index="1" aria-label="Вторая цифра ПИН-кода" />
+              <input class="pin-cell" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" data-index="2" aria-label="Третья цифра ПИН-кода" />
+              <input class="pin-cell" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" data-index="3" aria-label="Четвертая цифра ПИН-кода" />
+            </div>
           </div>
 
-          <!-- Блок первичной настройки ПИН-кода (открыт по умолчанию для первого входа) -->
-          <div class="setup-box" id="firstSetupBox" style="display: block;">
+          <!-- Блок первичной настройки / регистрации (скрыт по умолчанию) -->
+          <div class="setup-box" id="firstSetupBox" style="display: none;">
             <div class="setup-box-title">
               <span>🛡️</span>
-              <span>Первичная настройка защиты ПИН-кода</span>
+              <span id="setupBoxTitleText">Первичная регистрация и защита аккаунта</span>
             </div>
             <div class="field">
-              <label for="setupFullName">ФИО сотрудника (для отображения в чате)</label>
+              <label for="setupFullName">ФИО сотрудника (для отображения в системе)</label>
               <input
                 id="setupFullName"
                 type="text"
                 placeholder="Иванов Иван Иванович"
+                autocomplete="name"
               />
             </div>
             <div class="field">
@@ -1466,7 +1640,7 @@
           </div>
 
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
-            <button type="button" class="btn-link" id="btnToggleFirstSetup">Уже есть ПИН-код — войти</button>
+            <button type="button" class="btn-link" id="btnToggleFirstSetup">Регистрация</button>
             <button type="button" class="btn-link" id="btnForgotPin">Забыл ПИН-код</button>
           </div>
 
@@ -1673,6 +1847,45 @@
     </div>
   </div>
 
+  <!-- Модальное окно «Настройки» и переключения тем -->
+  <div class="modal-backdrop" id="settingsModalBackdrop" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-top">
+        <h3>⚙️ Настройки</h3>
+        <button type="button" class="btn btn-ghost" id="btnCloseSettingsModal">✕</button>
+      </div>
+
+      <!-- Информация о пользователе (если авторизован) -->
+      <div id="settingsUserInfoBox" style="display: none; margin-bottom: 20px; padding: 14px; border-radius: 12px; background: var(--surface-2, var(--surface)); border: 1px solid var(--border);">
+        <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">Текущий пользователь</div>
+        <div id="settingsUserFullName" style="font-weight: 700; font-size: 16px; margin-bottom: 2px;"></div>
+        <div id="settingsUserPhone" style="font-size: 14px; color: var(--muted); font-family: monospace; margin-bottom: 12px;"></div>
+        <button type="button" class="btn btn-danger" id="btnSettingsLogout" style="width: 100%;">Выйти из аккаунта</button>
+      </div>
+
+      <!-- Выбор темы оформления -->
+      <div class="field">
+        <label for="settingsThemeSelect">Тема оформления (10 тем)</label>
+        <select id="settingsThemeSelect" class="input" style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 14px;">
+          <option value="expert">ЭКСПЕРТ</option>
+          <option value="expert-dark">ЭКСПЕРТ НОЧЬ</option>
+          <option value="newyear">🎄 НОВОГОДНЯЯ</option>
+          <option value="pastel">ПАСТЕЛЬ</option>
+          <option value="dark">ТЁМНАЯ</option>
+          <option value="light">СВЕТЛАЯ</option>
+          <option value="marine">МОРСКАЯ</option>
+          <option value="coffee">КОФЕЙНАЯ</option>
+          <option value="pink">РОЗОВАЯ</option>
+          <option value="mint">МЯТНАЯ</option>
+        </select>
+      </div>
+
+      <div style="margin-top: 16px;">
+        <button type="button" class="btn btn-primary" id="btnApplySettings" style="width: 100%;">Готово</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Модальное окно восстановления ПИН-кода («Забыл ПИН-код») -->
   <div class="modal-backdrop" id="resetPinModalBackdrop" aria-hidden="true">
     <div class="modal-card">
@@ -1703,8 +1916,13 @@
         </div>
 
         <div class="field">
-          <label for="resetNewPin">Новый ПИН-код (4 цифры)</label>
-          <input type="password" id="resetNewPin" inputmode="numeric" maxlength="4" placeholder="••••" required />
+          <label id="resetNewPinLabel" style="display: block; text-align: center; margin-bottom: 6px;">Новый ПИН-код (4 цифры)</label>
+          <div class="pin-grid" id="resetPinGrid" role="group" aria-label="Ввод 4 цифр нового ПИН-кода">
+            <input class="pin-cell" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" data-index="0" aria-label="Первая цифра нового ПИН-кода" />
+            <input class="pin-cell" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" data-index="1" aria-label="Вторая цифра нового ПИН-кода" />
+            <input class="pin-cell" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" data-index="2" aria-label="Третья цифра нового ПИН-кода" />
+            <input class="pin-cell" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" data-index="3" aria-label="Четвертая цифра нового ПИН-кода" />
+          </div>
         </div>
 
         <div style="display: flex; gap: 8px; flex-direction: column;">
@@ -1908,11 +2126,160 @@
       if (select && select.value !== safeTheme) {
         select.value = safeTheme;
       }
+      const settingsSelect = document.getElementById("settingsThemeSelect");
+      if (settingsSelect && settingsSelect.value !== safeTheme) {
+        settingsSelect.value = safeTheme;
+      }
+
+      // Управление падающими снежинками в новогодней теме
+      const snowContainer = document.getElementById("hubSnowContainer");
+      if (snowContainer) {
+        if (safeTheme === "newyear") {
+          if (!snowContainer.hasChildNodes()) {
+            const count = 16;
+            const frag = document.createDocumentFragment();
+            for (let i = 0; i < count; i++) {
+              const flake = document.createElement("span");
+              flake.className = "snowflake";
+              flake.textContent = "❄";
+              flake.style.left = (Math.random() * 96 + 2).toFixed(1) + "%";
+              flake.style.fontSize = (Math.random() * 14 + 12).toFixed(1) + "px";
+              flake.style.animationDuration = (Math.random() * 5 + 6).toFixed(1) + "s";
+              flake.style.animationDelay = (Math.random() * 6).toFixed(1) + "s";
+              flake.style.opacity = (Math.random() * 0.4 + 0.6).toFixed(2);
+              frag.appendChild(flake);
+            }
+            snowContainer.appendChild(frag);
+          }
+        } else {
+          snowContainer.innerHTML = "";
+        }
+      }
 
       window.dispatchEvent(new CustomEvent("expert:theme_changed", { detail: safeTheme }));
     }
 
     const applyAppTheme = applyHubTheme;
+
+    /**
+     * Хелпер управления группой из 4 отдельных квадратных ячеек ПИН-кода
+     */
+    function createPinInputGroup(containerEl, onChange) {
+      if (!containerEl) return null;
+      const cells = Array.from(containerEl.querySelectorAll(".pin-cell"));
+      if (cells.length !== 4) return null;
+
+      const getValue = () => cells.map((c) => c.value).join("");
+
+      const setValue = (pinStr) => {
+        const digits = String(pinStr || "").replace(/\D/g, "").slice(0, 4);
+        cells.forEach((c, i) => {
+          c.value = digits[i] || "";
+          c.classList.toggle("filled", Boolean(c.value));
+        });
+        if (onChange) onChange(getValue());
+      };
+
+      const clear = () => {
+        cells.forEach((c) => {
+          c.value = "";
+          c.classList.remove("filled");
+        });
+        containerEl.classList.remove("pin-error");
+        if (onChange) onChange("");
+      };
+
+      const focusFirst = () => {
+        if (cells[0]) {
+          cells[0].focus();
+          cells[0].select();
+        }
+      };
+
+      const triggerError = () => {
+        containerEl.classList.remove("pin-error");
+        void containerEl.offsetWidth; // перезапуск CSS-анимации
+        containerEl.classList.add("pin-error");
+        setTimeout(() => {
+          containerEl.classList.remove("pin-error");
+        }, 500);
+      };
+
+      cells.forEach((cell, idx) => {
+        cell.addEventListener("input", (e) => {
+          const raw = e.target.value;
+          const digits = raw.replace(/\D/g, "");
+          if (digits.length > 1) {
+            for (let i = 0; i < digits.length && (idx + i) < 4; i++) {
+              cells[idx + i].value = digits[i];
+              cells[idx + i].classList.add("filled");
+            }
+            const nextIdx = Math.min(idx + digits.length, 3);
+            cells[nextIdx].focus();
+            cells[nextIdx].select();
+          } else if (digits.length === 1) {
+            cell.value = digits;
+            cell.classList.add("filled");
+            if (idx < 3) {
+              cells[idx + 1].focus();
+              cells[idx + 1].select();
+            }
+          } else {
+            cell.value = "";
+            cell.classList.remove("filled");
+          }
+          containerEl.classList.remove("pin-error");
+          if (onChange) onChange(getValue());
+        });
+
+        cell.addEventListener("keydown", (e) => {
+          containerEl.classList.remove("pin-error");
+          if (e.key === "Backspace") {
+            if (!cell.value && idx > 0) {
+              e.preventDefault();
+              cells[idx - 1].value = "";
+              cells[idx - 1].classList.remove("filled");
+              cells[idx - 1].focus();
+              if (onChange) onChange(getValue());
+            } else {
+              cell.value = "";
+              cell.classList.remove("filled");
+              if (onChange) onChange(getValue());
+            }
+          } else if (e.key === "ArrowLeft" && idx > 0) {
+            e.preventDefault();
+            cells[idx - 1].focus();
+            cells[idx - 1].select();
+          } else if (e.key === "ArrowRight" && idx < 3) {
+            e.preventDefault();
+            cells[idx + 1].focus();
+            cells[idx + 1].select();
+          } else if (e.key === "Delete") {
+            cell.value = "";
+            cell.classList.remove("filled");
+            if (onChange) onChange(getValue());
+          }
+        });
+
+        cell.addEventListener("paste", (e) => {
+          e.preventDefault();
+          const pasteText = (e.clipboardData || window.clipboardData).getData("text") || "";
+          const digits = pasteText.replace(/\D/g, "").slice(0, 4);
+          if (digits) {
+            setValue(digits);
+            const focusIdx = Math.min(digits.length, 3);
+            cells[focusIdx].focus();
+            cells[focusIdx].select();
+          }
+        });
+
+        cell.addEventListener("focus", () => {
+          cell.select();
+        });
+      });
+
+      return { getValue, setValue, clear, focusFirst, triggerError, cells };
+    }
 
     function isValidPin4(pin) {
       return /^\d{4}$/.test(String(pin || "").trim());
@@ -2246,7 +2613,7 @@
       document.querySelectorAll(".module-container").forEach((el) => {
         el.style.display = "none";
       });
-      document.getElementById("hubView").style.display = "block";
+      document.getElementById("hubView").style.display = "flex";
       document.getElementById("btnOpenDrawerChat").style.display = "none";
       document.getElementById("headerSubtitle").textContent = "Приложения для экспертов и инженеров";
       closeDrawerChat();
@@ -2297,16 +2664,10 @@
     function bindEvents() {
       const loginPhoneInput = document.getElementById("loginPhone");
       const resetPhoneInput = document.getElementById("resetPhoneInput");
-      const loginPinInput = document.getElementById("loginPin");
-      const resetNewPinInput = document.getElementById("resetNewPin");
 
-      // Ограничение ввода ПИН-кода только цифрами
-      [loginPinInput, resetNewPinInput].forEach((input) => {
-        if (!input) return;
-        input.addEventListener("input", () => {
-          input.value = input.value.replace(/\D/g, "").slice(0, 4);
-        });
-      });
+      // Инициализация групп 4 ячеек ПИН-кода
+      const loginPinGroup = createPinInputGroup(document.getElementById("loginPinGrid"));
+      const resetPinGroup = createPinInputGroup(document.getElementById("resetPinGrid"));
 
       // Жёсткая маска телефона, автоподстановка +7 и защита от стирания
       if (loginPhoneInput) attachPhoneMask(loginPhoneInput);
@@ -2322,24 +2683,53 @@
         });
       }
 
-      // Переключатель блока первичной настройки ПИН-кода
-      const btnToggleFirstSetup = document.getElementById("btnToggleFirstSetup");
-      if (btnToggleFirstSetup) {
-        btnToggleFirstSetup.addEventListener("click", () => {
-          const box = document.getElementById("firstSetupBox");
-          if (!box) return;
-          const isOpen = box.style.display !== "none";
-          box.style.display = isOpen ? "none" : "block";
-          btnToggleFirstSetup.textContent = isOpen ? "Первичная настройка / Задать ПИН" : "Уже есть ПИН-код — войти";
+      // === МОДАЛЬНОЕ ОКНО «НАСТРОЙКИ» (⚙️) ===
+      const settingsModal = document.getElementById("settingsModalBackdrop");
+      const btnOpenSettings = document.getElementById("btnOpenSettings");
+      const btnCloseSettingsModal = document.getElementById("btnCloseSettingsModal");
+      const btnApplySettings = document.getElementById("btnApplySettings");
+      const settingsThemeSelect = document.getElementById("settingsThemeSelect");
+      const settingsUserInfoBox = document.getElementById("settingsUserInfoBox");
+      const settingsUserFullName = document.getElementById("settingsUserFullName");
+      const settingsUserPhone = document.getElementById("settingsUserPhone");
+      const btnSettingsLogout = document.getElementById("btnSettingsLogout");
+
+      const updateSettingsModalUI = () => {
+        const currentTheme = document.documentElement.getAttribute("data-theme") || SafeStorage.get("expert_app_theme") || "expert";
+        if (settingsThemeSelect) settingsThemeSelect.value = currentTheme;
+        if (appState.session) {
+          if (settingsUserInfoBox) settingsUserInfoBox.style.display = "block";
+          if (settingsUserFullName) settingsUserFullName.textContent = appState.session.fullName || "Сотрудник";
+          if (settingsUserPhone) settingsUserPhone.textContent = formatPhoneMask(appState.session.phone || "");
+        } else {
+          if (settingsUserInfoBox) settingsUserInfoBox.style.display = "none";
+        }
+      };
+
+      if (btnOpenSettings && settingsModal) {
+        btnOpenSettings.addEventListener("click", () => {
+          updateSettingsModalUI();
+          settingsModal.classList.add("open");
         });
       }
 
-      // Переключение темы оформления из шапки сразу при старте (change + input)
-      const hubThemeSelect = document.getElementById("hubThemeSelect");
-      if (hubThemeSelect) {
-        const onThemeSelect = (e) => applyHubTheme(e.target.value);
-        hubThemeSelect.addEventListener("change", onThemeSelect);
-        hubThemeSelect.addEventListener("input", onThemeSelect);
+      const closeSettingsModal = () => {
+        if (settingsModal) settingsModal.classList.remove("open");
+      };
+
+      if (btnCloseSettingsModal) btnCloseSettingsModal.addEventListener("click", closeSettingsModal);
+      if (btnApplySettings) btnApplySettings.addEventListener("click", closeSettingsModal);
+
+      if (settingsModal) {
+        settingsModal.addEventListener("click", (e) => {
+          if (e.target.id === "settingsModalBackdrop") closeSettingsModal();
+        });
+      }
+
+      if (settingsThemeSelect) {
+        settingsThemeSelect.addEventListener("change", (e) => {
+          applyHubTheme(e.target.value);
+        });
       }
 
       // Синхронизация при смене темы из других модулей (например, Автоотчёта)
@@ -2349,22 +2739,60 @@
           if (current !== e.detail) {
             applyHubTheme(e.detail);
           }
+          if (settingsThemeSelect && settingsThemeSelect.value !== e.detail) {
+            settingsThemeSelect.value = e.detail;
+          }
         }
       });
 
-      // Форма входа / первичной настройки
+      // === УПРАВЛЕНИЕ РЕЖИМАМИ ФОРМЫ АВТОРИЗАЦИИ (Вход / Регистрация) ===
+      const authCardTitle = document.getElementById("authCardTitle");
+      const authCardDesc = document.getElementById("authCardDesc");
+      const firstSetupBox = document.getElementById("firstSetupBox");
+      const btnToggleFirstSetup = document.getElementById("btnToggleFirstSetup");
+      const btnLoginSubmit = document.getElementById("btnLoginSubmit");
+      const loginPinLabel = document.getElementById("loginPinLabel");
+      const setupFullNameEl = document.getElementById("setupFullName");
+      const setupHintEl = document.getElementById("setupHint");
+      const setupSecretWordEl = document.getElementById("setupSecretWord");
+
+      const setAuthMode = (mode) => {
+        const isReg = mode === "register";
+        if (firstSetupBox) firstSetupBox.style.display = isReg ? "block" : "none";
+        if (authCardTitle) authCardTitle.textContent = isReg ? "Регистрация в «Эксперт»" : "Вход в «Эксперт»";
+        if (authCardDesc) {
+          authCardDesc.textContent = isReg
+            ? "Придумайте 4-значный ПИН-код и заполните данные для защиты аккаунта."
+            : "Введите номер телефона и 4-значный ПИН-код для доступа к рабочей системе.";
+        }
+        if (btnLoginSubmit) btnLoginSubmit.textContent = isReg ? "Зарегистрироваться и войти" : "Войти в систему";
+        if (btnToggleFirstSetup) btnToggleFirstSetup.textContent = isReg ? "Уже есть аккаунт — войти" : "Регистрация";
+        if (loginPinLabel) loginPinLabel.textContent = isReg ? "Придумайте ПИН-код (4 цифры)" : "ПИН-код (4 цифры)";
+      };
+
+      if (btnToggleFirstSetup) {
+        btnToggleFirstSetup.addEventListener("click", () => {
+          const isReg = firstSetupBox && firstSetupBox.style.display !== "none";
+          setAuthMode(isReg ? "login" : "register");
+          const statusEl = document.getElementById("authStatus");
+          setStatusBox(statusEl, "", "");
+          if (!isReg) {
+            if (setupFullNameEl) setupFullNameEl.focus();
+          } else if (loginPinGroup) {
+            loginPinGroup.focusFirst();
+          }
+        });
+      }
+
+      // Отправка формы входа / регистрации
       const loginForm = document.getElementById("loginForm");
       if (loginForm) {
         loginForm.addEventListener("submit", async (e) => {
           e.preventDefault();
           const statusEl = document.getElementById("authStatus");
           const phone11 = normalizePhone11(loginPhoneInput ? loginPhoneInput.value : "");
-          const pin = loginPinInput ? loginPinInput.value.trim() : "";
-          const firstSetupBox = document.getElementById("firstSetupBox");
-          const setupVisible = firstSetupBox && firstSetupBox.style.display !== "none";
-          const setupFullNameEl = document.getElementById("setupFullName");
-          const setupHintEl = document.getElementById("setupHint");
-          const setupSecretWordEl = document.getElementById("setupSecretWord");
+          const pin = loginPinGroup ? loginPinGroup.getValue() : "";
+          const isRegister = firstSetupBox && firstSetupBox.style.display !== "none";
 
           const setupFullName = setupFullNameEl ? setupFullNameEl.value.trim() : "";
           const secretHint = setupHintEl ? setupHintEl.value.trim() : "";
@@ -2372,23 +2800,36 @@
 
           if (phone11.length !== 11) {
             setStatusBox(statusEl, "Введите корректный номер телефона (11 цифр).", "error");
+            if (loginPhoneInput) loginPhoneInput.focus();
             return;
           }
           if (!isValidPin4(pin)) {
-            setStatusBox(statusEl, "ПИН-код должен состоять ровно из 4 цифр.", "error");
+            setStatusBox(statusEl, isRegister ? "Придумайте 4-значный ПИН-код (4 цифры)." : "ПИН-код должен состоять ровно из 4 цифр.", "error");
+            if (loginPinGroup) {
+              loginPinGroup.triggerError();
+              loginPinGroup.focusFirst();
+            }
             return;
           }
-          if (setupVisible && (!secretHint || !secretWord)) {
-            setStatusBox(statusEl, "При первичной настройке укажите вопрос-подсказку и кодовое слово.", "error");
-            return;
+          if (isRegister) {
+            if (!secretHint) {
+              setStatusBox(statusEl, "Укажите вопрос-подсказку для восстановления ПИН-кода.", "error");
+              if (setupHintEl) setupHintEl.focus();
+              return;
+            }
+            if (!secretWord) {
+              setStatusBox(statusEl, "Укажите кодовое слово для сброса ПИН-кода.", "error");
+              if (setupSecretWordEl) setupSecretWordEl.focus();
+              return;
+            }
           }
 
-          // Если GAS URL ещё не подключён, работаем в демонстрационном режиме
+          // Демонстрационный режим, если GAS URL ещё не подключён
           if (!EXPERT_CONFIG.gasUrl) {
             appState.session = {
               phone: phone11,
               pin,
-              fullName: setupFullName || "",
+              fullName: setupFullName || formatPhoneMask(phone11),
               secretHint,
               secretWord
             };
@@ -2400,7 +2841,8 @@
           }
 
           try {
-            const actionName = setupVisible ? "authSetupPin" : "authLogin";
+            setStatusBox(statusEl, isRegister ? "Регистрация профиля..." : "Проверка учётных данных...", "info");
+            const actionName = isRegister ? "authSetupPin" : "authLogin";
             const res = await apiPost(actionName, {
               phone: phone11,
               pin,
@@ -2409,36 +2851,74 @@
               secretWord
             });
 
-            if (!res || !res.ok) {
-              setStatusBox(statusEl, (res && res.error) || "Неверный телефон или ПИН-код.", "error");
+            if (res && res.ok) {
+              appState.session = {
+                phone: phone11,
+                pin,
+                fullName: res.fullName || setupFullName || ""
+              };
+              SafeStorage.set(EXPERT_CONFIG.storageKeys.session, JSON.stringify(appState.session));
+              setStatusBox(statusEl, "", "");
+              syncAuthUI();
+              syncHubSessionToModules();
               return;
             }
 
-            appState.session = {
-              phone: phone11,
-              pin,
-              fullName: res.fullName || setupFullName || ""
-            };
-            SafeStorage.set(EXPERT_CONFIG.storageKeys.session, JSON.stringify(appState.session));
-            setStatusBox(statusEl, "", "");
-            syncAuthUI();
-            syncHubSessionToModules();
+            const errText = String((res && res.error) || "").toLowerCase();
+            const isNotFound = (res && res.notFound === true) || errText.includes("не найден");
+
+            // Если в режиме входа номера нет в базе — автопредложение регистрации
+            if (!isRegister && isNotFound) {
+              const formattedPhone = formatPhoneMask(phone11);
+              setStatusBox(
+                statusEl,
+                "Номер " + formattedPhone + " не найден в базе. Пожалуйста, зарегистрируйтесь — придумайте ПИН-код и кодовое слово.",
+                "info"
+              );
+              setAuthMode("register");
+              if (loginPhoneInput) loginPhoneInput.value = formattedPhone;
+              if (loginPinGroup) loginPinGroup.setValue(pin);
+              if (setupFullNameEl) {
+                setupFullNameEl.focus();
+              } else if (setupHintEl) {
+                setupHintEl.focus();
+              }
+              return;
+            }
+
+            // Если номер есть, но ПИН-код неверный
+            const isWrongPin = errText.includes("неверный") || errText.includes("wrong_pin");
+            if (!isRegister && isWrongPin) {
+              setStatusBox(statusEl, "Неверный ПИН-код. Повторите попытку.", "error");
+              if (loginPinGroup) {
+                loginPinGroup.clear();
+                loginPinGroup.triggerError();
+                loginPinGroup.focusFirst();
+              }
+              return;
+            }
+
+            setStatusBox(statusEl, (res && res.error) || "Ошибка авторизации.", "error");
           } catch (err) {
             setStatusBox(statusEl, "Ошибка связи с сервером: " + err.message, "error");
           }
         });
       }
 
-      // Выход из системы
+      // Общая функция выхода из системы (из шапки и настроек)
+      const handleUserLogout = () => {
+        appState.session = null;
+        SafeStorage.remove(EXPERT_CONFIG.storageKeys.session);
+        setAuthMode("login");
+        if (loginPinGroup) loginPinGroup.clear();
+        closeSettingsModal();
+        syncAuthUI();
+        syncHubSessionToModules();
+      };
+
       const btnLogout = document.getElementById("btnLogout");
-      if (btnLogout) {
-        btnLogout.addEventListener("click", () => {
-          appState.session = null;
-          SafeStorage.remove(EXPERT_CONFIG.storageKeys.session);
-          syncAuthUI();
-          syncHubSessionToModules();
-        });
-      }
+      if (btnLogout) btnLogout.addEventListener("click", handleUserLogout);
+      if (btnSettingsLogout) btnSettingsLogout.addEventListener("click", handleUserLogout);
 
       // Клик по плиткам приложений на главном экране
       document.querySelectorAll(".app-tile[data-module]").forEach((tile) => {
@@ -2460,157 +2940,22 @@
       const btnCloseDrawerChat = document.getElementById("btnCloseDrawerChat");
       if (btnCloseDrawerChat) btnCloseDrawerChat.addEventListener("click", closeDrawerChat);
 
-      const chatDrawerBackdrop = document.getElementById("chatDrawerBackdrop");
-      if (chatDrawerBackdrop) {
-        chatDrawerBackdrop.addEventListener("click", (e) => {
-          if (e.target.id === "chatDrawerBackdrop") {
-            closeDrawerChat();
-          }
-        });
-      }
-
-      // Обновление сообщений чата
-      const btnRefreshHubChat = document.getElementById("btnRefreshHubChat");
-      if (btnRefreshHubChat) btnRefreshHubChat.addEventListener("click", refreshChat);
-
-      const btnRefreshDrawerChat = document.getElementById("btnRefreshDrawerChat");
-      if (btnRefreshDrawerChat) btnRefreshDrawerChat.addEventListener("click", refreshChat);
-
-      // Отправка сообщений из чата хаба
-      const hubChatForm = document.getElementById("hubChatForm");
-      if (hubChatForm) {
-        hubChatForm.addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const input = document.getElementById("hubChatInput");
-          if (!input) return;
-          const val = input.value;
-          input.value = "";
-          await sendChatMessage(val);
-        });
-      }
-
-      // Отправка сообщений из выдвижного чата модуля
-      const drawerChatForm = document.getElementById("drawerChatForm");
-      if (drawerChatForm) {
-        drawerChatForm.addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const input = document.getElementById("drawerChatInput");
-          if (!input) return;
-          const val = input.value;
-          input.value = "";
-          await sendChatMessage(val);
-        });
-      }
-
-      // Дуговое (веерное) меню связи и модальное окно контактов
-      const commFabWrap = document.getElementById("commFabWrap");
-      const btnPhoneFab = document.getElementById("btnPhoneFab");
-      const phoneModal = document.getElementById("phoneModalBackdrop");
-      const arcItemCall = document.getElementById("arcItemCall");
-      const btnArcCall = document.getElementById("btnArcCall");
-      const arcItemTelegram = document.getElementById("arcItemTelegram");
-      const btnArcTelegram = document.getElementById("btnArcTelegram");
-      const arcItemClose = document.getElementById("arcItemClose");
-      const btnArcClose = document.getElementById("btnArcClose");
-
-      const toggleArcMenu = (e) => {
-        if (e) e.stopPropagation();
-        if (commFabWrap) {
-          const isOpen = commFabWrap.classList.toggle("open");
-          if (btnPhoneFab) btnPhoneFab.setAttribute("aria-expanded", String(isOpen));
-        }
-      };
-
-      const closeArcMenu = (e) => {
-        if (e) e.stopPropagation();
-        if (commFabWrap && commFabWrap.classList.contains("open")) {
-          commFabWrap.classList.remove("open");
-          if (btnPhoneFab) btnPhoneFab.setAttribute("aria-expanded", "false");
-        }
-      };
-
-      const openContactsModal = (e) => {
-        closeArcMenu(e);
-        if (phoneModal) {
-          phoneModal.classList.add("open");
-          refreshContacts();
-        }
-      };
-
-      const openTelegramChannel = (e) => {
-        closeArcMenu(e);
-        window.open(EXPERT_CONFIG.telegramUrl || "https://t.me/", "_blank", "noopener,noreferrer");
-      };
-
-      if (btnPhoneFab) btnPhoneFab.addEventListener("click", toggleArcMenu);
-      if (btnArcCall) btnArcCall.addEventListener("click", openContactsModal);
-      if (arcItemCall) arcItemCall.addEventListener("click", openContactsModal);
-      if (btnArcTelegram) btnArcTelegram.addEventListener("click", openTelegramChannel);
-      if (arcItemTelegram) arcItemTelegram.addEventListener("click", openTelegramChannel);
-      if (btnArcClose) btnArcClose.addEventListener("click", closeArcMenu);
-      if (arcItemClose) arcItemClose.addEventListener("click", closeArcMenu);
-
-      // Закрытие дугового меню при клике вне кнопки
-      document.addEventListener("click", (e) => {
-        if (commFabWrap && commFabWrap.classList.contains("open") && !commFabWrap.contains(e.target)) {
-          commFabWrap.classList.remove("open");
-          if (btnPhoneFab) btnPhoneFab.setAttribute("aria-expanded", "false");
-        }
-      });
-
-      // Закрытие дугового меню по клавише Escape
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && commFabWrap && commFabWrap.classList.contains("open")) {
-          commFabWrap.classList.remove("open");
-          if (btnPhoneFab) btnPhoneFab.setAttribute("aria-expanded", "false");
-        }
-      });
-
-      const btnClosePhoneModal = document.getElementById("btnClosePhoneModal");
-      if (btnClosePhoneModal && phoneModal) {
-        btnClosePhoneModal.addEventListener("click", () => {
-          phoneModal.classList.remove("open");
-        });
-      }
-
-      if (phoneModal) {
-        phoneModal.addEventListener("click", (e) => {
-          if (e.target.id === "phoneModalBackdrop") {
-            phoneModal.classList.remove("open");
-          }
-        });
-      }
-
-      // Открытие Telegram из кнопки «Трубка»
-      const btnOpenTelegramApp = document.getElementById("btnOpenTelegramApp");
-      if (btnOpenTelegramApp) {
-        btnOpenTelegramApp.addEventListener("click", () => {
-          window.open(EXPERT_CONFIG.telegramUrl || "https://t.me/", "_blank", "noopener,noreferrer");
-        });
-      }
-
-      // Поиск по контактам
-      const contactSearchInput = document.getElementById("contactSearchInput");
-      if (contactSearchInput) {
-        contactSearchInput.addEventListener("input", (e) => {
-          renderContacts(e.target.value);
-        });
-      }
-
-      // Модалка «Забыл ПИН-код»
-      const resetModal = document.getElementById("resetPinModalBackdrop");
-      const resetStatus = document.getElementById("resetPinStatus");
+      // Кнопка перехода в модалку сброса ПИН-кода
       const btnForgotPin = document.getElementById("btnForgotPin");
-
-      if (btnForgotPin && resetModal) {
+      const resetModal = document.getElementById("resetPinModalBackdrop");
+      if (btnForgotPin) {
         btnForgotPin.addEventListener("click", () => {
-          if (resetPhoneInput) {
-            resetPhoneInput.value = loginPhoneInput && loginPhoneInput.value ? formatPhoneMask(loginPhoneInput.value) : "+7 ";
+          if (resetModal) {
+            const hintBox = document.getElementById("resetHintBox");
+            if (hintBox) hintBox.style.display = "none";
+            const resetStatus = document.getElementById("resetPinStatus");
+            setStatusBox(resetStatus, "", "");
+            if (resetPhoneInput && loginPhoneInput && loginPhoneInput.value) {
+              resetPhoneInput.value = formatPhoneMask(loginPhoneInput.value);
+            }
+            if (resetPinGroup) resetPinGroup.clear();
+            resetModal.classList.add("open");
           }
-          const hintBox = document.getElementById("resetHintBox");
-          if (hintBox) hintBox.style.display = "none";
-          setStatusBox(resetStatus, "", "");
-          resetModal.classList.add("open");
         });
       }
 
@@ -2633,6 +2978,7 @@
       const btnFetchHint = document.getElementById("btnFetchHint");
       if (btnFetchHint) {
         btnFetchHint.addEventListener("click", async () => {
+          const resetStatus = document.getElementById("resetPinStatus");
           const phone11 = normalizePhone11(resetPhoneInput ? resetPhoneInput.value : "");
           if (phone11.length !== 11) {
             setStatusBox(resetStatus, "Сначала введите корректный номер телефона (11 цифр).", "error");
@@ -2666,18 +3012,20 @@
         });
       }
 
-      // Сброс ПИН-кода
+      // Сброс ПИН-кода с использованием 4 квадратов
       const resetPinForm = document.getElementById("resetPinForm");
       if (resetPinForm) {
         resetPinForm.addEventListener("submit", async (e) => {
           e.preventDefault();
-          const phone11 = normalizePhone11(resetPhoneInput ? resetPhoneInput.value : "");
+          const resetStatus = document.getElementById("resetPinStatus");
+          const phone = normalizePhone11(resetPhoneInput ? resetPhoneInput.value : "");
           const secretWordEl = document.getElementById("resetSecretWord");
           const secretWord = secretWordEl ? secretWordEl.value.trim() : "";
-          const newPin = resetNewPinInput ? resetNewPinInput.value.trim() : "";
+          const newPin = resetPinGroup ? resetPinGroup.getValue() : "";
 
-          if (phone11.length !== 11) {
-            setStatusBox(resetStatus, "Введите корректный номер телефона.", "error");
+          if (phone.length !== 11) {
+            setStatusBox(resetStatus, "Введите корректный номер телефона (11 цифр).", "error");
+            if (resetPhoneInput) resetPhoneInput.focus();
             return;
           }
           if (!secretWord) {
@@ -2686,29 +3034,39 @@
           }
           if (!isValidPin4(newPin)) {
             setStatusBox(resetStatus, "Новый ПИН-код должен состоять ровно из 4 цифр.", "error");
+            if (resetPinGroup) {
+              resetPinGroup.triggerError();
+              resetPinGroup.focusFirst();
+            }
             return;
           }
 
           if (!EXPERT_CONFIG.gasUrl) {
             setStatusBox(resetStatus, "ПИН-код обновлён в локальном режиме. Теперь можно войти с новым ПИН-кодом.", "success");
-            if (loginPinInput) loginPinInput.value = newPin;
+            if (loginPinGroup) loginPinGroup.setValue(newPin);
             return;
           }
 
           try {
+            setStatusBox(resetStatus, "Сброс и сохранение нового ПИН-кода...", "info");
             const res = await apiPost("authResetPin", {
-              phone: phone11,
+              phone,
               secretWord,
               newPin
             });
 
             if (!res || !res.ok) {
-              setStatusBox(resetStatus, (res && res.error) || "Неверное кодовое слово.", "error");
+              setStatusBox(resetStatus, (res && res.error) || "Ошибка сброса ПИН-кода. Проверьте кодовое слово.", "error");
               return;
             }
 
             setStatusBox(resetStatus, "ПИН-код успешно изменён! Теперь войдите с новым ПИН-кодом.", "success");
-            if (loginPinInput) loginPinInput.value = newPin;
+            if (loginPinGroup) loginPinGroup.setValue(newPin);
+            setTimeout(() => {
+              if (resetModal) resetModal.classList.remove("open");
+              if (loginPhoneInput) loginPhoneInput.value = formatPhoneMask(phone);
+              if (loginPinGroup) loginPinGroup.setValue(newPin);
+            }, 1200);
           } catch (err) {
             setStatusBox(resetStatus, "Ошибка сброса ПИН-кода: " + err.message, "error");
           }
@@ -10056,6 +10414,7 @@
                                         <span className="font-semibold text-white">{formatTime(now)}</span>
                                     </div>
                                 </div>
+                            </div>
 
                                 {/* Правая часть: чат, режимы, звук, облако, настройки */}
                                 <div className="flex items-center gap-2 flex-wrap">
