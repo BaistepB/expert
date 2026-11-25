@@ -2701,7 +2701,7 @@
         </div>
       </header>
 
-      <div id="adminStatusBanner" class="status-box" style="display: none; margin-bottom: 12px;"></div>
+      <div id="adminStatusBanner" class="status-msg" style="margin-bottom: 12px;"></div>
 
       <!-- Блок подтверждения прав администратора -->
       <form id="adminAuthForm" class="admin-section-card" style="display: none; max-width: 520px; margin: 20px auto;">
@@ -3370,6 +3370,8 @@
       if (!el) return;
       el.textContent = message || "";
       el.className = "status-msg" + (type ? " " + type : "");
+      // Явно управляем видимостью — чтобы inline style не мешал
+      el.style.display = (message && type) ? "" : "none";
     }
 
     /* =========================================================================
@@ -4179,7 +4181,9 @@
         if (appState.session.chatWelcomePending) {
           triggerChatWelcomeIfNeeded(true);
         }
-        refreshChat();
+        if (isSessionChatAllowed(appState.session)) {
+          refreshChat();
+        }
         startHeartbeatLoop();
       } else {
         stopHeartbeatLoop();
@@ -5465,7 +5469,7 @@
         };
 
         const isFivePointStarGesture = window.isFivePointStarGesture = (rawPts) => {
-          if (!Array.isArray(rawPts) || rawPts.length < 14) return false;
+          if (!Array.isArray(rawPts) || rawPts.length < 8) return false;
           let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
           let totalLen = 0;
           for (let i = 0; i < rawPts.length; i++) {
@@ -5483,7 +5487,7 @@
           const minDim = Math.min(width, height);
 
           // Защита от случайных мелких касаний, узких линий и слишком коротких штрихов
-          if (width < 70 || height < 70 || (minDim / maxDim) < 0.42 || totalLen < maxDim * 2.2) {
+          if (width < 50 || height < 50 || (minDim / maxDim) < 0.35 || totalLen < maxDim * 1.8) {
             return false;
           }
 
@@ -5556,12 +5560,14 @@
           isDrawing = true;
           activePointerId = e.pointerId;
           points = [{ x: e.clientX, y: e.clientY }];
+          // Блокируем скролл браузера (Android) во время жеста
+          document.body.style.touchAction = "none";
         }, { passive: true });
 
         window.addEventListener("pointermove", (e) => {
           if (!isDrawing || e.pointerId !== activePointerId) return;
           const prev = points[points.length - 1];
-          if (!prev || Math.hypot(e.clientX - prev.x, e.clientY - prev.y) >= 6) {
+          if (!prev || Math.hypot(e.clientX - prev.x, e.clientY - prev.y) >= 4) {
             points.push({ x: e.clientX, y: e.clientY });
           }
         }, { passive: true });
@@ -5570,6 +5576,8 @@
           if (!isDrawing || (e.pointerId !== undefined && e.pointerId !== activePointerId)) return;
           isDrawing = false;
           activePointerId = null;
+          // Восстанавливаем touch-action после жеста
+          document.body.style.touchAction = "";
           const captured = points.slice();
           points = [];
           clearCanvas();
