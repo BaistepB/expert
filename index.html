@@ -1443,6 +1443,10 @@
       justify-content: center;
     }
 
+    body.in-module .comm-fab-wrap {
+      bottom: 24px;
+    }
+
     /* Главная кнопка связи */
     .comm-fab-main {
       width: 62px;
@@ -1854,8 +1858,8 @@
         position: fixed;
         inset: 0;
         width: 100%;
-        height: 100%;
-        max-height: 100%;
+        height: 100dvh;
+        max-height: 100dvh;
         margin: 0;
         padding: 0;
         overflow: hidden;
@@ -1866,8 +1870,8 @@
       .app-shell {
         position: relative;
         width: 100%;
-        height: 100%;
-        max-height: 100%;
+        height: 100dvh;
+        max-height: 100dvh;
         min-height: 0;
         overflow: hidden;
         overscroll-behavior: none;
@@ -1902,7 +1906,7 @@
         overflow: hidden;
         overscroll-behavior: none;
         touch-action: none;
-        padding-bottom: calc(34px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
       }
       .module-view {
         flex: 1;
@@ -1953,7 +1957,7 @@
       #hubChatContainer {
         padding: 7px 10px;
         gap: 5px;
-        margin-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+        margin-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
         margin-right: 0;
       }
       #hubChatContainer .chat-messages {
@@ -1998,9 +2002,12 @@
       }
       .comm-fab-wrap {
         right: 16px;
-        bottom: 215px;
+        bottom: calc(285px + env(safe-area-inset-bottom, 0px));
         width: 56px;
         height: 56px;
+      }
+      body.in-module .comm-fab-wrap {
+        bottom: calc(20px + env(safe-area-inset-bottom, 0px));
       }
       .comm-fab-main {
         width: 56px;
@@ -3290,6 +3297,7 @@
       if (!MODULE_TITLES[moduleKey]) return;
 
       appState.activeModule = moduleKey;
+      document.body.classList.add("in-module");
       const topbarEl = document.querySelector(".topbar");
       if (topbarEl) topbarEl.style.display = "none";
       document.getElementById("hubView").style.display = "none";
@@ -3317,6 +3325,7 @@
 
     function backToHub() {
       appState.activeModule = null;
+      document.body.classList.remove("in-module");
       const topbarEl = document.querySelector(".topbar");
       if (topbarEl) topbarEl.style.display = "flex";
       document.getElementById("moduleView").style.display = "none";
