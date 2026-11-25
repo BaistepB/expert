@@ -432,17 +432,27 @@
       color: var(--topbar-text, var(--text));
       border: 1px solid var(--topbar-border, var(--border));
       position: sticky;
+      margin: 12px 20px 0;
+      position: sticky;
       top: 12px;
       z-index: 30;
+      gap: 12px;
       box-shadow: var(--shadow);
       transition: background 0.25s ease, border-color 0.2s ease, color 0.2s ease;
     }
 
-    .brand-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    #btnBrandHome {
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+      background: transparent;
+      border: none;
+      padding: 0;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
 
@@ -455,11 +465,11 @@
       transition: transform 0.16s ease, opacity 0.16s ease;
     }
 
-    .brand-group:hover .brand-home-icon {
+    #btnBrandHome:hover .brand-home-icon {
       transform: scale(1.08);
     }
 
-    .brand-group:active .brand-home-icon {
+    #btnBrandHome:active .brand-home-icon {
       transform: scale(0.95);
     }
 
@@ -497,7 +507,10 @@
     .hub-clock-wrap {
       display: flex;
       flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
       min-width: 0;
+      flex-shrink: 0;
       line-height: 1.12;
     }
 
@@ -542,7 +555,8 @@
     .topbar-right {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
+      margin-left: auto;
       flex-wrap: nowrap;
       flex-shrink: 0;
     }
@@ -854,6 +868,7 @@
       max-height: var(--app-height, 100dvh);
       overflow: hidden;
       overscroll-behavior: none;
+      touch-action: none;
     }
 
     body.on-hub .app-shell {
@@ -861,21 +876,27 @@
       max-height: 100%;
       min-height: 0;
       overflow: hidden;
+      touch-action: none;
+    }
+
+    body.on-hub .hub-grid,
+    body.on-hub #hubChatContainer {
+      touch-action: none;
     }
 
     @media (min-width: 641px) {
       .app-shell {
-        margin: 12px auto;
-        min-height: calc(100dvh - 24px);
-        border: 1.5px solid var(--border);
-        border-radius: 20px;
-        box-shadow: var(--shadow-lg);
+        margin: 0 auto;
+        min-height: 100dvh;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
         overflow-x: hidden;
       }
 
       body.on-hub .app-shell {
-        height: calc(100dvh - 24px);
-        max-height: calc(100dvh - 24px);
+        height: 100%;
+        max-height: 100%;
       }
     }
 
@@ -886,6 +907,7 @@
       max-height: none;
       min-height: 0;
       overflow: hidden;
+      touch-action: none;
     }
 
     #hubChatContainer .chat-form {
@@ -1966,8 +1988,13 @@
         overscroll-behavior: none;
         touch-action: none;
       }
+      #btnBrandHome {
+        width: 40px;
+        height: 40px;
+      }
       .topbar {
         margin: 8px 12px 0;
+        top: 0;
         padding: 10px 14px;
         border-radius: 14px;
         flex-shrink: 0;
@@ -2427,14 +2454,16 @@
   <div class="app-shell">
     <!-- Шапка приложения -->
     <header class="topbar">
-      <div class="brand-group" id="btnBrandHome" title="Домой" aria-label="Домой" role="button" tabindex="0">
+      <button type="button" id="btnBrandHome" title="Домой" aria-label="Домой">
         <span class="brand-home-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 10.5L12 3l9 7.5" />
             <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" />
           </svg>
         </span>
-        <div class="hub-clock-wrap" id="hubLiveDateTime" aria-label="Текущие дата и время">
+      </button>
+
+      <div class="hub-clock-wrap" id="hubLiveDateTime" aria-label="Текущие дата и время">
           <div class="hub-clock-date" id="hubLiveDate">--.--.---- --</div>
           <div class="hub-clock-time-row">
             <span class="hub-clock-ny" aria-hidden="true">🎄</span>
@@ -2442,7 +2471,6 @@
             <span class="hub-clock-ny" aria-hidden="true">✨</span>
           </div>
         </div>
-      </div>
 
       <div class="topbar-right">
         <span class="topbar-sync-badge" id="topbarSyncBadge" aria-live="polite"></span>
@@ -5972,14 +6000,14 @@
             return false;
           }
 
-          // Начало и конец звезды должны быть сравнительно близко
+          // Начало и конец звезды должны быть сравнительно близко (запас для больших экранов планшета)
           const endDist = Math.hypot(rawPts[0].x - rawPts[rawPts.length - 1].x, rawPts[0].y - rawPts[rawPts.length - 1].y);
-          if (endDist > maxDim * 0.65) {
+          if (endDist > maxDim * 0.85) {
             return false;
           }
 
-          const simplified = rdpSimplify(rawPts, maxDim * 0.105);
-          if (simplified.length < 5 || simplified.length > 9) {
+          const simplified = rdpSimplify(rawPts, maxDim * 0.115);
+          if (simplified.length < 5 || simplified.length > 12) {
             return false;
           }
 
@@ -5992,13 +6020,13 @@
             const v2y = simplified[i + 1].y - simplified[i].y;
             const m1 = Math.hypot(v1x, v1y);
             const m2 = Math.hypot(v2x, v2y);
-            if (m1 > 10 && m2 > 10) {
+            if (m1 > 8 && m2 > 8) {
               const cosA = (v1x * v2x + v1y * v2y) / (m1 * m2);
-              // Поворот направления > ~95 градусов (острая вершина звезды)
-              if (cosA < -0.08) sharpTurns++;
+              // Поворот направления > ~80 градусов (вершина звезды)
+              if (cosA < 0.18) sharpTurns++;
             }
           }
-          if (sharpTurns < 4 || sharpTurns > 6) {
+          if (sharpTurns < 3 || sharpTurns > 8) {
             return false;
           }
 
@@ -6066,6 +6094,12 @@
             openAdminModal();
           }
         };
+
+        window.addEventListener("touchmove", (e) => {
+          if (isDrawing && e.cancelable) {
+            e.preventDefault();
+          }
+        }, { passive: false });
 
         window.addEventListener("pointerup", finishGesture, { passive: true });
         window.addEventListener("pointercancel", finishGesture, { passive: true });
