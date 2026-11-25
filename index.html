@@ -2003,7 +2003,6 @@
       #hubChatContainer {
         margin-top: auto;
         flex: 0 1 auto;
-        max-height: 46%;
         min-height: 0;
         margin-bottom: 0;
         margin-right: 0;
@@ -2021,7 +2020,7 @@
         justify-content: space-between;
         gap: 8px;
         flex-wrap: nowrap;
-        flex-shrink: 0;
+        flex: 0 0 auto;
       }
       #hubChatContainer .chat-header-title {
         font-size: 14px;
@@ -2031,8 +2030,8 @@
       }
       #hubChatContainer .chat-messages {
         flex: 1 1 auto;
-        min-height: 72px;
-        max-height: 170px;
+        min-height: 0;
+        max-height: none;
         position: relative;
         padding: 6px;
         gap: 4px;
@@ -2046,7 +2045,7 @@
         gap: 6px;
         width: 100%;
         min-width: 0;
-        flex-shrink: 0;
+        flex: 0 0 auto;
       }
       #hubChatContainer .chat-form input {
         flex: 1 1 auto;
@@ -3733,6 +3732,9 @@
         closeDrawerChat();
       }
       updateChatWatermark();
+      if (typeof schedulePositionHubChat === "function") {
+        schedulePositionHubChat();
+      }
     }
 
     /* =========================================================================
@@ -4333,8 +4335,66 @@
       if (targetContainer) {
         targetContainer.style.display = "block";
       }
+      if (typeof schedulePositionHubChat === "function") {
+        schedulePositionHubChat();
+      }
       window.dispatchEvent(new CustomEvent("expert:module_opened", { detail: moduleKey }));
     }
+
+    function positionHubChatUnderWidget() {
+      const chatBox = document.getElementById("hubChatContainer");
+      if (!chatBox) return;
+
+      const resetInline = () => {
+        chatBox.style.position = "";
+        chatBox.style.left = "";
+        chatBox.style.right = "";
+        chatBox.style.top = "";
+        chatBox.style.height = "";
+        chatBox.style.bottom = "";
+        chatBox.style.margin = "";
+        chatBox.style.zIndex = "";
+      };
+
+      const isMobile = window.innerWidth <= 640;
+      const isOnHub = document.body && document.body.classList.contains("on-hub");
+      const isChatVisible = chatBox.style.display !== "none" && isSessionChatAllowed(appState.session);
+
+      if (!isMobile || !isOnHub || !isChatVisible) {
+        resetInline();
+        return;
+      }
+
+      const commFabWrap = document.getElementById("commFabWrap");
+      const fabRect = commFabWrap ? commFabWrap.getBoundingClientRect() : { height: 0, bottom: 0 };
+      const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+
+      chatBox.style.position = "fixed";
+      chatBox.style.left = "12px";
+      chatBox.style.right = "12px";
+      chatBox.style.margin = "0";
+      chatBox.style.zIndex = "20";
+
+      if (!fabRect || fabRect.height === 0) {
+        chatBox.style.top = "";
+        chatBox.style.bottom = "14px";
+        chatBox.style.height = "210px";
+      } else {
+        const chatTop = Math.round(fabRect.bottom + 14);
+        const chatHeight = Math.max(140, Math.round(vh - chatTop - 14));
+        chatBox.style.top = chatTop + "px";
+        chatBox.style.height = chatHeight + "px";
+        chatBox.style.bottom = "auto";
+      }
+    }
+
+    function schedulePositionHubChat() {
+      requestAnimationFrame(() => {
+        positionHubChatUnderWidget();
+      });
+    }
+    window.positionHubChatUnderWidget = positionHubChatUnderWidget;
+    window.schedulePositionHubChat = schedulePositionHubChat;
 
     function backToHub() {
       appState.activeModule = null;
@@ -4351,6 +4411,7 @@
       // В шапке всегда отображаются актуальные дата и время
       closeDrawerChat();
       renderChatLists();
+      schedulePositionHubChat();
     }
 
     function openDrawerChat() {
@@ -6129,6 +6190,9 @@
         ? window.visualViewport.height
         : window.innerHeight;
       document.documentElement.style.setProperty("--app-height", h + "px");
+      if (typeof schedulePositionHubChat === "function") {
+        schedulePositionHubChat();
+      }
     }
     updateAppHeight();
     window.addEventListener("resize", updateAppHeight);
