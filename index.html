@@ -2071,6 +2071,302 @@
         height: 40px;
       }
     }
+
+    /* Полноэкранная админ-панель с поддержкой всех 10 тем */
+    #adminModalBackdrop.admin-fullscreen-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 75;
+      display: none;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      backdrop-filter: none;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+    }
+
+    #adminModalBackdrop.admin-fullscreen-backdrop.open {
+      display: flex;
+    }
+
+    #adminModalBackdrop.admin-fullscreen-backdrop .admin-modal-card {
+      width: 100%;
+      max-width: 1140px;
+      max-height: none;
+      margin: 0 auto;
+      padding: 14px 18px calc(32px + env(safe-area-inset-bottom, 0px));
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      overflow: visible;
+    }
+
+    .admin-page-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+      margin-bottom: 14px;
+      background: var(--topbar-bg, var(--surface));
+      border: 1px solid var(--topbar-border, var(--border));
+      border-radius: var(--radius, 16px);
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 10px;
+      z-index: 5;
+      backdrop-filter: blur(10px);
+    }
+
+    .admin-page-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .admin-page-title-wrap h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .admin-page-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .admin-section-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius, 16px);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+
+    .admin-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .admin-section-header h4 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .admin-dashboard-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .admin-dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .admin-stats-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .admin-stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface-2, var(--surface));
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .admin-status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .admin-status-dot.online {
+      background: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.22);
+    }
+
+    .admin-status-dot.offline {
+      background: #94a3b8;
+    }
+
+    .admin-user-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .admin-user-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .admin-chat-toggle-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .admin-chat-toggle-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .admin-alert-item {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface-2, var(--surface));
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .admin-alert-item.unseen {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.08);
+    }
+
+    .admin-alerts-list {
+      max-height: 290px;
+      overflow-y: auto;
+    }
+
+    /* Защита чата: водяной знак, запрет выделения, размытие и печать */
+    #hubChatContainer,
+    .chat-drawer {
+      position: relative;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    #hubChatContainer .chat-messages,
+    .chat-drawer .chat-messages {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      position: relative;
+      z-index: 1;
+    }
+
+    #hubChatContainer .chat-form input,
+    #hubChatContainer .chat-form textarea,
+    .chat-drawer .chat-form input,
+    .chat-drawer .chat-form textarea {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .chat-watermark-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 3;
+      opacity: 0.13;
+      background-repeat: repeat;
+      background-position: 0 0;
+    }
+
+    .chat-security-blurred .chat-messages {
+      filter: blur(8px) !important;
+      transition: filter 0.12s ease;
+    }
+
+    .chat-msg.system-welcome {
+      border: 1.5px solid var(--accent);
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(16, 185, 129, 0.10));
+    }
+
+    @media print {
+      #hubChatContainer,
+      .chat-drawer-backdrop,
+      .chat-drawer,
+      #hubChatMessages,
+      #drawerChatMessages {
+        display: none !important;
+        visibility: hidden !important;
+      }
+    }
+
+    /* Модалка уведомлений от администратора и алертов безопасности */
+    #userPopupModalBackdrop {
+      z-index: 95;
+    }
+
+    .popup-admin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(37, 99, 235, 0.14);
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    .popup-admin-badge.alert {
+      background: rgba(239, 68, 68, 0.16);
+      color: #dc2626;
+    }
+
+    .popup-message-body {
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface-2, var(--surface));
+      font-size: 15px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-bottom: 14px;
+    }
   </style>
 </head>
 <body>
@@ -2208,6 +2504,7 @@
 
         <!-- Чат на главном экране (снизу и всегда открыт) -->
         <section class="chat-docked" id="hubChatContainer" aria-label="Чат на главном экране «Домой»">
+          <div class="chat-watermark-layer" id="hubChatWatermark" aria-hidden="true"></div>
           <div class="chat-header">
             <div class="chat-header-title">
               <span>💬 Чат</span>
@@ -2245,6 +2542,7 @@
   <!-- Выдвижная панель чата (drawer для работы внутри модулей) -->
   <div class="chat-drawer-backdrop" id="chatDrawerBackdrop" aria-hidden="true">
     <aside class="chat-drawer" role="dialog" aria-label="Чат в выдвижной панели">
+      <div class="chat-watermark-layer" id="drawerChatWatermark" aria-hidden="true"></div>
       <div class="chat-header">
         <div class="chat-header-title">
           <span>💬 Чат</span>
@@ -2389,19 +2687,25 @@
     </div>
   </div>
 
-  <!-- Секретное админ-меню (открывается жестом звезды или 5 кликами по заголовку Настроек) -->
-  <div class="modal-backdrop" id="adminModalBackdrop" aria-hidden="true">
+  <!-- Полноэкранная страница администрирования (открывается жестом звезды или 5 кликами по заголовку Настроек) -->
+  <div class="modal-backdrop admin-fullscreen-backdrop" id="adminModalBackdrop" aria-hidden="true">
     <div class="modal-card admin-modal-card">
-      <div class="modal-top">
-        <h3>🛡️ Администрирование</h3>
-        <button type="button" class="btn btn-ghost" id="btnCloseAdminModal">✕</button>
-      </div>
+      <header class="admin-page-topbar">
+        <div class="admin-page-title-wrap">
+          <button type="button" class="btn btn-ghost" id="btnCloseAdminModal">← Назад</button>
+          <h3>🛡️ Администрирование</h3>
+        </div>
+        <div class="admin-page-actions">
+          <button type="button" class="btn btn-ghost" id="btnAdminRefreshUsers">🔄 Обновить</button>
+          <button type="button" class="btn btn-danger" id="btnAdminCleanChatAction" title="Очистить все сообщения чата в базе">🧹 Очистить весь чат</button>
+        </div>
+      </header>
 
       <div id="adminStatusBanner" class="status-box" style="display: none; margin-bottom: 12px;"></div>
 
       <!-- Блок подтверждения прав администратора -->
-      <form id="adminAuthForm" style="display: none; margin-bottom: 14px; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2, var(--surface));">
-        <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px;">Подтверждение прав администратора</div>
+      <form id="adminAuthForm" class="admin-section-card" style="display: none; max-width: 520px; margin: 20px auto;">
+        <div style="font-weight: 700; font-size: 15px; margin-bottom: 10px;">Подтверждение прав администратора</div>
         <div class="admin-form-grid">
           <div class="field" style="margin-bottom: 0;">
             <label for="adminLoginPhone">Телефон администратора</label>
@@ -2412,22 +2716,65 @@
             <input type="password" id="adminLoginPin" inputmode="numeric" maxlength="4" placeholder="••••" required />
           </div>
         </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Войти в админ-меню</button>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 12px;">Войти в админ-меню</button>
       </form>
 
       <!-- Основная панель администратора -->
       <div id="adminPanelContent" style="display: none;">
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
-          <input type="text" id="adminSearchInput" placeholder="Поиск по ФИО или телефону..." style="flex: 1 1 200px; min-width: 0;" />
-          <button type="button" class="btn btn-ghost" id="btnAdminRefreshUsers">🔄 Обновить</button>
-          <button type="button" class="btn btn-danger" id="btnAdminCleanChatAction" title="Очистить все сообщения чата в базе">🧹 Очистить весь чат</button>
+        <div class="admin-dashboard-grid">
+          <!-- Левая колонка: Пользователи и онлайн-статусы -->
+          <section class="admin-section-card">
+            <div class="admin-section-header">
+              <h4>👥 Пользователи системы</h4>
+              <div class="admin-stats-bar" style="margin-bottom: 0;">
+                <span class="admin-stat-pill" id="adminOnlineCountBadge"><span class="admin-status-dot online"></span> Онлайн: 0</span>
+                <span class="admin-stat-pill" id="adminTotalCountBadge">Всего: 0</span>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+              <input type="text" id="adminSearchInput" placeholder="Поиск по ФИО или телефону..." style="flex: 1 1 200px; min-width: 0;" />
+            </div>
+
+            <!-- Список пользователей -->
+            <div id="adminUsersListBox"></div>
+          </section>
+
+          <!-- Правая колонка: Личные всплывающие уведомления и алерты безопасности -->
+          <div style="display: flex; flex-direction: column;">
+            <section class="admin-section-card" id="adminSendPopupBox">
+              <div class="admin-section-header">
+                <h4>✉️ Всплывающее уведомление</h4>
+              </div>
+              <form id="adminSendPopupForm">
+                <div class="field" style="margin-bottom: 10px;">
+                  <label for="adminPopupTargetSelect">Получатель</label>
+                  <select id="adminPopupTargetSelect" style="width: 100%; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text);" required>
+                    <option value="">Выберите сотрудника...</option>
+                  </select>
+                </div>
+                <div class="field" style="margin-bottom: 10px;">
+                  <label for="adminPopupMessageInput">Текст сообщения (покажется поверх экрана)</label>
+                  <textarea id="adminPopupMessageInput" rows="3" placeholder="Введите текст важного уведомления..." style="width: 100%; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); resize: vertical; font-family: inherit; font-size: 14px;" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">📨 Отправить уведомление</button>
+              </form>
+            </section>
+
+            <section class="admin-section-card" id="adminSecurityAlertsBox">
+              <div class="admin-section-header">
+                <h4>🛡️ Уведомления безопасности <span class="admin-badge admin-badge-admin" id="adminAlertsUnreadBadge" style="display: none;">0 новых</span></h4>
+                <button type="button" class="btn btn-ghost" id="btnAdminMarkAlertsSeen" style="font-size: 12px; padding: 5px 10px;">✓ Отметить прочитанными</button>
+              </div>
+              <div id="adminSecurityAlertsList" class="admin-alerts-list">
+                <div style="color: var(--muted); font-size: 13px;">Нарушений безопасности не зафиксировано.</div>
+              </div>
+            </section>
+          </div>
         </div>
 
-        <!-- Список пользователей -->
-        <div id="adminUsersListBox" style="max-height: 240px; overflow-y: auto; margin-bottom: 12px;"></div>
-
         <!-- Карточка детального просмотра и редактирования пользователя -->
-        <div id="adminUserEditorBox" style="display: none; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2, var(--surface));">
+        <div id="adminUserEditorBox" class="admin-section-card" style="display: none;">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px;">
             <strong id="adminEditorHeading" style="font-size: 15px;">Редактирование пользователя</strong>
             <button type="button" class="btn btn-ghost" id="btnAdminCloseEditor">Свернуть</button>
@@ -2503,10 +2850,23 @@
           <!-- Сводка всех данных пользователя из Google Таблицы -->
           <div style="margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px;">
             <div style="font-weight: 700; font-size: 13px; margin-bottom: 6px;">📊 Все данные пользователя в таблице:</div>
-            <pre id="adminUserRawDetails" style="max-height: 180px; overflow: auto; font-size: 11px; padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.06); white-space: pre-wrap; word-break: break-word;">Выберите пользователя для загрузки подробностей...</pre>
+            <pre id="adminUserRawDetails" style="max-height: 200px; overflow: auto; font-size: 11px; padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.06); white-space: pre-wrap; word-break: break-word;">Выберите пользователя для загрузки подробностей...</pre>
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно для личных уведомлений от администратора и алертов безопасности -->
+  <div class="modal-backdrop" id="userPopupModalBackdrop" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-top">
+        <h3 id="userPopupModalTitle">📩 Сообщение от администратора</h3>
+      </div>
+      <div id="userPopupModalBadge" class="popup-admin-badge">Важное уведомление</div>
+      <div id="userPopupModalMeta" style="font-size: 12px; color: var(--muted); margin-bottom: 8px;"></div>
+      <div id="userPopupModalBody" class="popup-message-body"></div>
+      <button type="button" class="btn btn-primary" id="btnAckUserPopup" style="width: 100%;">Понятно</button>
     </div>
   </div>
 
@@ -3015,11 +3375,75 @@
     /* =========================================================================
        РЕНДЕР И ЛОГИКА ЧАТА
        ========================================================================= */
+    function escapeSecurityHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function formatAdminDateTime(isoStr) {
+      if (!isoStr) return "нет данных";
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return String(isoStr);
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const yy = String(d.getFullYear()).slice(-2);
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mi = String(d.getMinutes()).padStart(2, "0");
+      return dd + "." + mm + "." + yy + " " + hh + ":" + mi;
+    }
+
+    const CHAT_WELCOME_SEEN_STORAGE_KEY = "expert_app_chat_welcome_shown_v1";
+
+    function isChatWelcomeVisibleForSession() {
+      if (!appState.session || !isSessionChatAllowed(appState.session)) return false;
+      const p11 = normalizePhone11(appState.session.phone);
+      return Boolean(appState.chatWelcomeVisibleForPhone && appState.chatWelcomeVisibleForPhone === p11);
+    }
+
+    function triggerChatWelcomeIfNeeded(pendingFlag) {
+      if (!appState.session || !isSessionChatAllowed(appState.session)) return;
+      const shouldShow = Boolean(pendingFlag) || Boolean(appState.session.chatWelcomePending);
+      if (!shouldShow) return;
+
+      const p11 = normalizePhone11(appState.session.phone);
+      appState.chatWelcomeVisibleForPhone = p11;
+      appState.session.chatWelcomePending = false;
+      SafeStorage.set(EXPERT_CONFIG.storageKeys.session, JSON.stringify(appState.session));
+      SafeStorage.set(CHAT_WELCOME_SEEN_STORAGE_KEY + "_" + p11, new Date().toISOString());
+      renderChatLists();
+
+      if (EXPERT_CONFIG.gasUrl && !appState.chatWelcomeAckInFlight) {
+        appState.chatWelcomeAckInFlight = true;
+        apiPost("userAckChatWelcome", {
+          phone: p11,
+          pin: appState.session.pin
+        }).catch((err) => {
+          console.warn("[Чат] Не удалось подтвердить приветствие:", err);
+        }).finally(() => {
+          appState.chatWelcomeAckInFlight = false;
+        });
+      }
+    }
+
     function renderChatLists() {
       const targets = [
         document.getElementById("hubChatMessages"),
         document.getElementById("drawerChatMessages")
       ];
+
+      const showWelcome = isChatWelcomeVisibleForSession();
+      const welcomeCardHtml = showWelcome ? `
+        <article class="chat-msg system-welcome">
+          <div class="chat-meta">
+            <span>🛡️ Системное сообщение</span>
+          </div>
+          <div class="chat-text">Добро пожаловать в корпоративный чат! Этот чат предназначен только для экспертов и инженеров. Пожалуйста, соблюдайте конфиденциальность: копирование, печать и создание скриншотов переписки запрещены.</div>
+        </article>
+      ` : "";
 
       targets.forEach((container) => {
         if (!container) return;
@@ -3032,21 +3456,22 @@
           return;
         }
         if (!appState.messages.length) {
-          container.innerHTML = `
+          container.innerHTML = welcomeCardHtml + `
             <div class="chat-msg">
               <div class="chat-text" style="color: var(--muted);">В чате пока нет сообщений. Напишите первое!</div>
             </div>
           `;
+          container.scrollTop = container.scrollHeight;
           return;
         }
 
         const myPhone = appState.session.phone;
 
-        container.innerHTML = appState.messages.map((item) => {
-          const safeDate = String(item.date || "");
-          const safeTime = String(item.time || "");
-          const safeName = String(item.userName || "Сотрудник");
-          const safeText = String(item.message || "");
+        const messagesHtml = appState.messages.map((item) => {
+          const safeDate = escapeSecurityHtml(item.date || "");
+          const safeTime = escapeSecurityHtml(item.time || "");
+          const safeName = escapeSecurityHtml(item.userName || "Сотрудник");
+          const safeText = escapeSecurityHtml(item.message || "");
           const isMine = item.userPhone && normalizePhone11(item.userPhone) === normalizePhone11(myPhone);
 
           return `
@@ -3062,6 +3487,7 @@
           `;
         }).join("");
 
+        container.innerHTML = messagesHtml + welcomeCardHtml;
         container.scrollTop = container.scrollHeight;
       });
     }
@@ -3081,6 +3507,29 @@
       }
       // По умолчанию чат скрыт для всех пользователей, кроме главного администратора
       return isSessionAdmin(session);
+    }
+
+    function updateChatWatermark() {
+      const hubWm = document.getElementById("hubChatWatermark");
+      const drawerWm = document.getElementById("drawerChatWatermark");
+      const layers = [hubWm, drawerWm];
+
+      if (!appState.session || !isSessionChatAllowed(appState.session)) {
+        layers.forEach((el) => {
+          if (el) el.style.backgroundImage = "none";
+        });
+        return;
+      }
+
+      const nameText = String(appState.session.fullName || "Сотрудник").trim();
+      const phoneText = formatPhoneMask(appState.session.phone);
+      const label = escapeSecurityHtml(nameText + " • " + phoneText);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="280" height="150"><text x="140" y="75" text-anchor="middle" fill="#64748b" font-family="sans-serif" font-size="12" font-weight="700" transform="rotate(-24 140 75)">${label}</text></svg>`;
+      const bgVal = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) + '")';
+
+      layers.forEach((el) => {
+        if (el) el.style.backgroundImage = bgVal;
+      });
     }
 
     function syncChatAccessUI() {
@@ -3106,6 +3555,310 @@
       if (!allowed) {
         closeDrawerChat();
       }
+      updateChatWatermark();
+    }
+
+    /* =========================================================================
+       HEARTBEAT, ЛИЧНЫЕ ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ И АЛЕРТЫ БЕЗОПАСНОСТИ
+       ========================================================================= */
+    const userPopupQueue = [];
+    const seenPopupIds = new Set();
+    const seenSecurityAlertIds = new Set();
+    let activeUserPopupItem = null;
+    let heartbeatTimerId = null;
+    let heartbeatInFlight = false;
+    let lastHeartbeatAtMs = 0;
+
+    function showNextUserPopup() {
+      const backdrop = document.getElementById("userPopupModalBackdrop");
+      const titleEl = document.getElementById("userPopupModalTitle");
+      const badgeEl = document.getElementById("userPopupModalBadge");
+      const metaEl = document.getElementById("userPopupModalMeta");
+      const bodyEl = document.getElementById("userPopupModalBody");
+      if (!backdrop || !titleEl || !badgeEl || !metaEl || !bodyEl) return;
+
+      if (activeUserPopupItem) return;
+      if (!userPopupQueue.length) {
+        backdrop.classList.remove("open");
+        backdrop.setAttribute("aria-hidden", "true");
+        return;
+      }
+
+      activeUserPopupItem = userPopupQueue.shift();
+      if (activeUserPopupItem.kind === "security_alerts") {
+        const list = activeUserPopupItem.alerts || [];
+        titleEl.textContent = "🛡️ Уведомление безопасности чата";
+        badgeEl.textContent = "Обнаружена попытка нарушения (" + list.length + ")";
+        badgeEl.className = "popup-admin-badge alert";
+        metaEl.textContent = "Проверьте журнал безопасности в админ-панели";
+        bodyEl.textContent = list.map((a) => {
+          const who = (a.userName || "Пользователь") + " (" + formatPhoneMask(a.userPhone) + ")";
+          const when = formatAdminDateTime(a.createdAt);
+          return "• [" + when + "] " + who + ": " + (a.eventType || "alert") + (a.details ? " — " + a.details : "");
+        }).join("\n");
+      } else {
+        const pop = activeUserPopupItem.popup;
+        titleEl.textContent = "📩 Сообщение от администратора";
+        badgeEl.textContent = "Личное уведомление";
+        badgeEl.className = "popup-admin-badge";
+        metaEl.textContent = "Получено: " + formatAdminDateTime(pop.createdAt);
+        bodyEl.textContent = String(pop.message || "");
+      }
+
+      backdrop.classList.add("open");
+      backdrop.setAttribute("aria-hidden", "false");
+    }
+
+    function enqueueUserPopups(popups) {
+      if (!Array.isArray(popups) || !popups.length) return;
+      let added = false;
+      popups.forEach((p) => {
+        const pid = String((p && p.id) || "");
+        if (!pid || seenPopupIds.has(pid)) return;
+        seenPopupIds.add(pid);
+        userPopupQueue.push({ kind: "popup", popup: p });
+        added = true;
+      });
+      if (added) showNextUserPopup();
+    }
+
+    function enqueueAdminSecurityAlerts(alerts) {
+      if (!Array.isArray(alerts) || !alerts.length) return;
+      const fresh = alerts.filter((a) => {
+        const aid = String((a && a.id) || "");
+        if (!aid || seenSecurityAlertIds.has(aid)) return false;
+        seenSecurityAlertIds.add(aid);
+        return true;
+      });
+      if (!fresh.length) return;
+      userPopupQueue.push({ kind: "security_alerts", alerts: fresh });
+      showNextUserPopup();
+    }
+
+    async function acknowledgeCurrentUserPopup() {
+      const backdrop = document.getElementById("userPopupModalBackdrop");
+      const current = activeUserPopupItem;
+      activeUserPopupItem = null;
+      if (backdrop) {
+        backdrop.classList.remove("open");
+        backdrop.setAttribute("aria-hidden", "true");
+      }
+
+      if (current && appState.session && EXPERT_CONFIG.gasUrl) {
+        try {
+          if (current.kind === "popup" && current.popup && current.popup.id) {
+            await apiPost("userMarkPopupRead", {
+              phone: appState.session.phone,
+              pin: appState.session.pin,
+              popupId: current.popup.id
+            });
+          } else if (current.kind === "security_alerts" && isSessionAdmin(appState.session)) {
+            const ids = (current.alerts || []).map((a) => a.id).filter(Boolean);
+            await apiPost("adminMarkAlertsSeen", {
+              adminPhone: appState.session.phone,
+              adminPin: appState.session.pin,
+              phone: appState.session.phone,
+              pin: appState.session.pin,
+              alertIds: ids
+            });
+            if (typeof window.__refreshAdminAlertsIfOpen === "function") {
+              window.__refreshAdminAlertsIfOpen();
+            }
+          }
+        } catch (err) {
+          console.warn("[Popup] Ошибка подтверждения прочтения:", err);
+        }
+      }
+
+      showNextUserPopup();
+    }
+
+    async function sendUserHeartbeat(forceRun) {
+      if (!appState.session || !EXPERT_CONFIG.gasUrl) return;
+      if (!forceRun && document.hidden) return;
+      if (heartbeatInFlight) return;
+      const nowMs = Date.now();
+      if (!forceRun && nowMs - lastHeartbeatAtMs < 15000) return;
+
+      heartbeatInFlight = true;
+      lastHeartbeatAtMs = nowMs;
+      try {
+        const res = await apiPost("userHeartbeat", {
+          phone: appState.session.phone,
+          pin: appState.session.pin
+        });
+        if (!res || res.ok !== true || !appState.session) return;
+
+        let changed = false;
+        const prevChatAllowed = isSessionChatAllowed(appState.session);
+
+        if (res.chatAllowed !== undefined && Boolean(res.chatAllowed) !== prevChatAllowed) {
+          appState.session.chatAllowed = Boolean(res.chatAllowed);
+          changed = true;
+        }
+        if (res.isAdmin !== undefined && Boolean(res.isAdmin) !== Boolean(appState.session.isAdmin)) {
+          appState.session.isAdmin = Boolean(res.isAdmin);
+          appState.session.role = res.isAdmin ? "admin" : "user";
+          changed = true;
+        }
+        if (changed) {
+          SafeStorage.set(EXPERT_CONFIG.storageKeys.session, JSON.stringify(appState.session));
+          syncChatAccessUI();
+          if (!prevChatAllowed && isSessionChatAllowed(appState.session)) {
+            refreshChat();
+          }
+        }
+        if (res.chatWelcomePending) {
+          triggerChatWelcomeIfNeeded(true);
+        }
+        if (Array.isArray(res.popups) && res.popups.length) {
+          enqueueUserPopups(res.popups);
+        }
+        if (isSessionAdmin(appState.session) && Array.isArray(res.alerts) && res.alerts.length) {
+          enqueueAdminSecurityAlerts(res.alerts);
+        }
+      } catch (err) {
+        console.warn("[Heartbeat] Ошибка фоновой синхронизации:", err);
+      } finally {
+        heartbeatInFlight = false;
+      }
+    }
+
+    function startHeartbeatLoop() {
+      stopHeartbeatLoop();
+      if (!appState.session) return;
+      sendUserHeartbeat(true);
+      heartbeatTimerId = setInterval(() => {
+        if (!document.hidden && appState.session) {
+          sendUserHeartbeat(false);
+        }
+      }, 60000);
+    }
+
+    function stopHeartbeatLoop() {
+      if (heartbeatTimerId) {
+        clearInterval(heartbeatTimerId);
+        heartbeatTimerId = null;
+      }
+    }
+
+    /* =========================================================================
+       ЗАЩИТА ЧАТА ОТ КОПИРОВАНИЯ И СКРИНШОТОВ
+       ========================================================================= */
+    let chatBlurTimerId = null;
+    let lastSecurityAlertSentMs = 0;
+
+    function isChatCurrentlyVisible() {
+      if (!appState.session || !isSessionChatAllowed(appState.session)) return false;
+      const adminBackdrop = document.getElementById("adminModalBackdrop");
+      if (adminBackdrop && adminBackdrop.classList.contains("open")) return false;
+      const drawerBackdrop = document.getElementById("chatDrawerBackdrop");
+      if (drawerBackdrop && drawerBackdrop.classList.contains("open")) return true;
+      const hubChat = document.getElementById("hubChatContainer");
+      return Boolean(
+        document.body.classList.contains("on-hub") &&
+        hubChat &&
+        hubChat.style.display !== "none"
+      );
+    }
+
+    function triggerChatSecurityViolation(eventType, details) {
+      const hubChat = document.getElementById("hubChatContainer");
+      const drawerEl = document.querySelector("#chatDrawerBackdrop .chat-drawer");
+      [hubChat, drawerEl].forEach((el) => {
+        if (el) el.classList.add("chat-security-blurred");
+      });
+
+      if (chatBlurTimerId) clearTimeout(chatBlurTimerId);
+      chatBlurTimerId = setTimeout(() => {
+        [hubChat, drawerEl].forEach((el) => {
+          if (el) el.classList.remove("chat-security-blurred");
+        });
+      }, 2000);
+
+      if (typeof window.showSyncToast === "function") {
+        window.showSyncToast("Чат только для экспертов и инженеров, запрещено делиться сообщениями из этого чата!", "error");
+      }
+
+      const nowMs = Date.now();
+      if (appState.session && EXPERT_CONFIG.gasUrl && (nowMs - lastSecurityAlertSentMs) >= 10000) {
+        lastSecurityAlertSentMs = nowMs;
+        apiPost("logChatSecurityAlert", {
+          phone: appState.session.phone,
+          pin: appState.session.pin,
+          userPhone: appState.session.phone,
+          userName: appState.session.fullName || formatPhoneMask(appState.session.phone),
+          eventType: String(eventType || "security_violation"),
+          details: String(details || "")
+        }).catch((err) => {
+          console.warn("[Security] Не удалось отправить алерт:", err);
+        });
+      }
+    }
+
+    let chatSecurityInitialized = false;
+    function initChatSecurityProtection() {
+      if (chatSecurityInitialized) return;
+      chatSecurityInitialized = true;
+
+      const containers = [
+        document.getElementById("hubChatContainer"),
+        document.querySelector("#chatDrawerBackdrop .chat-drawer")
+      ];
+
+      containers.forEach((box) => {
+        if (!box) return;
+        ["copy", "cut", "contextmenu"].forEach((evtName) => {
+          box.addEventListener(evtName, (e) => {
+            if (!appState.session || !isSessionChatAllowed(appState.session)) return;
+            const targetTag = e.target && e.target.tagName ? e.target.tagName.toUpperCase() : "";
+            if ((evtName === "copy" || evtName === "cut") && (targetTag === "INPUT" || targetTag === "TEXTAREA")) {
+              return;
+            }
+            e.preventDefault();
+            triggerChatSecurityViolation(
+              evtName === "contextmenu" ? "ContextMenu" : "CopyAttempt",
+              evtName === "contextmenu" ? "Попытка открыть контекстное меню в чате" : "Попытка копирования сообщений чата"
+            );
+          });
+        });
+      });
+
+      const handleSecurityKey = (e) => {
+        if (!isChatCurrentlyVisible()) return;
+        const keyStr = String(e.key || "");
+        const codeStr = String(e.code || "");
+        const isPrintScreen = keyStr === "PrintScreen" || codeStr === "PrintScreen" || e.keyCode === 44;
+        const isPrintShortcut = (e.ctrlKey || e.metaKey) && (keyStr.toLowerCase() === "p" || codeStr === "KeyP");
+        const isMacScreenshot = e.metaKey && e.shiftKey && (["3", "4", "5", "s", "S"].includes(keyStr) || ["Digit3", "Digit4", "Digit5", "KeyS"].includes(codeStr));
+
+        if (isPrintScreen) {
+          e.preventDefault();
+          triggerChatSecurityViolation("PrintScreen", "Нажата клавиша PrintScreen при открытом чате");
+        } else if (isPrintShortcut) {
+          e.preventDefault();
+          triggerChatSecurityViolation("PrintShortcut", "Комбинация печати Ctrl/Cmd+P при открытом чате");
+        } else if (isMacScreenshot) {
+          e.preventDefault();
+          triggerChatSecurityViolation("ScreenshotShortcut", "Комбинация скриншота Meta+Shift+" + (keyStr || codeStr));
+        }
+      };
+
+      window.addEventListener("keydown", handleSecurityKey);
+      window.addEventListener("keyup", (e) => {
+        const keyStr = String(e.key || "");
+        const codeStr = String(e.code || "");
+        if ((keyStr === "PrintScreen" || codeStr === "PrintScreen" || e.keyCode === 44) && isChatCurrentlyVisible()) {
+          e.preventDefault();
+          triggerChatSecurityViolation("PrintScreen", "Клавиша PrintScreen при открытом чате");
+        }
+      });
+
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden && appState.session) {
+          sendUserHeartbeat(false);
+        }
+      });
     }
 
     async function cleanChatAsAdmin(adminCreds) {
@@ -3423,8 +4176,21 @@
         if (!appState.activeModule) {
           backToHub();
         }
+        if (appState.session.chatWelcomePending) {
+          triggerChatWelcomeIfNeeded(true);
+        }
         refreshChat();
+        startHeartbeatLoop();
       } else {
+        stopHeartbeatLoop();
+        appState.chatWelcomeVisibleForPhone = null;
+        userPopupQueue.length = 0;
+        activeUserPopupItem = null;
+        const popupModal = document.getElementById("userPopupModalBackdrop");
+        if (popupModal) {
+          popupModal.classList.remove("open");
+          popupModal.setAttribute("aria-hidden", "true");
+        }
         document.body.classList.remove("on-hub");
         document.body.classList.remove("in-module");
         closeDrawerChat();
@@ -3708,7 +4474,8 @@
                 fullName: res.fullName || setupFullName || "",
                 role: res.role || (phone11 === PRIMARY_ADMIN_PHONE ? "admin" : "user"),
                 isAdmin: res.isAdmin !== undefined ? Boolean(res.isAdmin) : (phone11 === PRIMARY_ADMIN_PHONE),
-                chatAllowed: res.chatAllowed !== undefined ? Boolean(res.chatAllowed) : (phone11 === PRIMARY_ADMIN_PHONE)
+                chatAllowed: res.chatAllowed !== undefined ? Boolean(res.chatAllowed) : (phone11 === PRIMARY_ADMIN_PHONE),
+                chatWelcomePending: Boolean(res.chatWelcomePending)
               };
               SafeStorage.set(EXPERT_CONFIG.storageKeys.session, JSON.stringify(appState.session));
               setStatusBox(statusEl, "", "");
@@ -4112,7 +4879,7 @@
         });
       }
 
-      // === СЕКРЕТНОЕ АДМИН-МЕНЮ (ЖЕСТ ЗВЕЗДЫ + 5 КЛИКОВ ПО ЗАГОЛОВКУ «НАСТРОЙКИ») ===
+      // === СЕКРЕТНОЕ АДМИН-МЕНЮ (ПОЛНОЭКРАННАЯ СТРАНИЦА + ЖЕСТ ЗВЕЗДЫ + 5 КЛИКОВ) ===
       const adminModal = document.getElementById("adminModalBackdrop");
       const btnCloseAdminModal = document.getElementById("btnCloseAdminModal");
       const adminAuthForm = document.getElementById("adminAuthForm");
@@ -4124,6 +4891,14 @@
       const btnAdminRefreshUsers = document.getElementById("btnAdminRefreshUsers");
       const btnAdminCleanChatAction = document.getElementById("btnAdminCleanChatAction");
       const adminUsersListBox = document.getElementById("adminUsersListBox");
+      const adminOnlineCountBadge = document.getElementById("adminOnlineCountBadge");
+      const adminTotalCountBadge = document.getElementById("adminTotalCountBadge");
+      const adminPopupTargetSelect = document.getElementById("adminPopupTargetSelect");
+      const adminPopupMessageInput = document.getElementById("adminPopupMessageInput");
+      const adminSendPopupForm = document.getElementById("adminSendPopupForm");
+      const adminAlertsUnreadBadge = document.getElementById("adminAlertsUnreadBadge");
+      const btnAdminMarkAlertsSeen = document.getElementById("btnAdminMarkAlertsSeen");
+      const adminSecurityAlertsList = document.getElementById("adminSecurityAlertsList");
       const adminUserEditorBox = document.getElementById("adminUserEditorBox");
       const btnAdminCloseEditor = document.getElementById("btnAdminCloseEditor");
       const adminEditUserForm = document.getElementById("adminEditUserForm");
@@ -4132,15 +4907,79 @@
 
       let adminCreds = null;
       let adminUsersCache = [];
+      let adminAlertsCache = [];
 
       if (adminLoginPhone) attachPhoneMask(adminLoginPhone);
 
+      const btnAckUserPopup = document.getElementById("btnAckUserPopup");
+      if (btnAckUserPopup) {
+        btnAckUserPopup.addEventListener("click", () => {
+          acknowledgeCurrentUserPopup();
+        });
+      }
+      initChatSecurityProtection();
+
+      const populateAdminPopupSelect = () => {
+        if (!adminPopupTargetSelect) return;
+        const prevVal = adminPopupTargetSelect.value;
+        const optionsHtml = ['<option value="">Выберите сотрудника...</option>'].concat(
+          adminUsersCache.map((u) => {
+            const p11 = normalizePhone11(u.phone || u.userId);
+            const label = escapeSecurityHtml((u.fullName || "Без имени") + " (" + formatPhoneMask(p11) + ")");
+            return '<option value="' + escapeSecurityHtml(p11) + '">' + label + '</option>';
+          })
+        );
+        adminPopupTargetSelect.innerHTML = optionsHtml.join("");
+        if (prevVal) adminPopupTargetSelect.value = prevVal;
+      };
+
+      const renderAdminSecurityAlerts = () => {
+        if (!adminSecurityAlertsList) return;
+        const unseenCount = adminAlertsCache.filter((a) => !a.seenByAdmin).length;
+        if (adminAlertsUnreadBadge) {
+          adminAlertsUnreadBadge.textContent = unseenCount + " новых";
+          adminAlertsUnreadBadge.style.display = unseenCount > 0 ? "inline-flex" : "none";
+        }
+        if (!adminAlertsCache.length) {
+          adminSecurityAlertsList.innerHTML = '<div style="color: var(--muted); font-size: 13px;">Нарушений безопасности не зафиксировано.</div>';
+          return;
+        }
+        adminSecurityAlertsList.innerHTML = adminAlertsCache.map((a) => {
+          const who = escapeSecurityHtml(a.userName || "Сотрудник");
+          const phoneMask = escapeSecurityHtml(formatPhoneMask(a.userPhone));
+          const when = escapeSecurityHtml(formatAdminDateTime(a.createdAt));
+          const ev = escapeSecurityHtml(a.eventType || "alert");
+          const det = escapeSecurityHtml(a.details || "");
+          return `
+            <div class="admin-alert-item${a.seenByAdmin ? "" : " unseen"}">
+              <div style="display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-weight: 700;">
+                <span>${a.seenByAdmin ? "✓" : "🚨"} ${who} <span style="font-weight: 500; color: var(--muted); font-family: monospace;">${phoneMask}</span></span>
+                <span style="font-size: 11px; color: var(--muted);">${when}</span>
+              </div>
+              <div style="margin-top: 4px; font-size: 12px;">
+                <span class="admin-badge ${a.seenByAdmin ? "admin-badge-chat-off" : "admin-badge-admin"}">${ev}</span>
+                ${det ? '<span style="margin-left: 6px;">' + det + '</span>' : ""}
+              </div>
+            </div>
+          `;
+        }).join("");
+      };
+
       const renderAdminUsersList = () => {
         if (!adminUsersListBox) return;
+
+        const onlineTotal = adminUsersCache.filter((u) => Boolean(u.isOnline)).length;
+        if (adminOnlineCountBadge) {
+          adminOnlineCountBadge.innerHTML = '<span class="admin-status-dot online"></span> Онлайн: ' + onlineTotal;
+        }
+        if (adminTotalCountBadge) {
+          adminTotalCountBadge.textContent = "Всего: " + adminUsersCache.length;
+        }
+
         const q = String((adminSearchInput && adminSearchInput.value) || "").trim().toLowerCase();
         const filtered = adminUsersCache.filter((u) => {
           const nameStr = String(u.fullName || "").toLowerCase();
-          const phoneStr = String(u.userId || "").toLowerCase();
+          const phoneStr = String(u.phone || u.userId || "").toLowerCase();
           return !q || nameStr.includes(q) || phoneStr.includes(q);
         });
 
@@ -4150,33 +4989,45 @@
         }
 
         adminUsersListBox.innerHTML = filtered.map((u) => {
-          const masked = formatPhoneMask(u.userId);
-          const safeName = String(u.fullName || "Без имени");
+          const p11 = normalizePhone11(u.phone || u.userId);
+          const masked = escapeSecurityHtml(formatPhoneMask(p11));
+          const safeName = escapeSecurityHtml(u.fullName || "Без имени");
+          const safePin = escapeSecurityHtml(u.pin || "----");
           const chatOn = Boolean(u.chatAllowed);
+          const isOnline = Boolean(u.isOnline);
+          const lastSeenLabel = u.lastSeenAt ? formatAdminDateTime(u.lastSeenAt) : "ещё не заходил";
           return `
             <div class="admin-user-row">
-              <div style="min-width: 170px; flex: 1;">
-                <div style="font-weight: 700; font-size: 14px;">
-                  ${safeName}
-                  ${u.isAdmin ? '<span class="admin-badge admin-badge-admin">ADMIN</span>' : ''}
+              <div style="min-width: 190px; flex: 1;">
+                <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap; font-weight: 700; font-size: 14px;">
+                  <span class="admin-status-dot ${isOnline ? "online" : "offline"}" title="${isOnline ? "Онлайн" : "Офлайн"}"></span>
+                  <span>${safeName}</span>
+                  ${u.isAdmin ? '<span class="admin-badge admin-badge-admin">ADMIN</span>' : ""}
                 </div>
-                <div style="font-size: 12px; color: var(--muted); font-family: monospace;">${masked}</div>
+                <div class="admin-user-card-meta">
+                  <span style="font-family: monospace;">${masked}</span>
+                  <span>ПИН: <strong>${safePin}</strong></span>
+                  <span>${isOnline ? '<strong style="color:#16a34a;">Онлайн</strong>' : "Офлайн (" + escapeSecurityHtml(lastSeenLabel) + ")"}</span>
+                </div>
               </div>
-              <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                <button type="button" class="btn btn-ghost" data-admin-toggle-chat="${u.userId}" data-next-chat="${chatOn ? 'false' : 'true'}" style="font-size: 12px; padding: 6px 10px;">
-                  <span class="admin-badge ${chatOn ? 'admin-badge-chat-on' : 'admin-badge-chat-off'}">💬 Чат: ${chatOn ? 'ВКЛ' : 'ВЫКЛ'}</span>
-                </button>
-                <button type="button" class="btn btn-ghost" data-admin-edit="${u.userId}" style="font-size: 12px; padding: 6px 10px;">✏️ Данные</button>
+              <div class="admin-user-controls">
+                <label class="admin-chat-toggle-label" title="Разрешить или запретить доступ к чату">
+                  <input type="checkbox" data-admin-toggle-chat="${escapeSecurityHtml(p11)}" ${chatOn ? "checked" : ""} />
+                  <span>Чат</span>
+                </label>
+                <button type="button" class="btn btn-ghost" data-admin-popup="${escapeSecurityHtml(p11)}" style="font-size: 12px; padding: 6px 10px;">✉️ Написать</button>
+                <button type="button" class="btn btn-ghost" data-admin-edit="${escapeSecurityHtml(p11)}" style="font-size: 12px; padding: 6px 10px;">✏️ Данные</button>
               </div>
             </div>
           `;
         }).join("");
 
-        adminUsersListBox.querySelectorAll("[data-admin-toggle-chat]").forEach((btn) => {
-          btn.addEventListener("click", async () => {
+        adminUsersListBox.querySelectorAll("input[data-admin-toggle-chat]").forEach((cb) => {
+          cb.addEventListener("change", async () => {
             if (!adminCreds) return;
-            const targetPhone = btn.getAttribute("data-admin-toggle-chat");
-            const nextChat = btn.getAttribute("data-next-chat") === "true";
+            const targetPhone = cb.getAttribute("data-admin-toggle-chat");
+            const nextChat = Boolean(cb.checked);
+            cb.disabled = true;
             try {
               setStatusBox(adminStatusBanner, "Обновление доступа к чату...", "info");
               const res = await apiPost("adminToggleChat", {
@@ -4188,17 +5039,35 @@
               if (res && res.ok) {
                 if (appState.session && normalizePhone11(appState.session.phone) === normalizePhone11(targetPhone)) {
                   appState.session.chatAllowed = nextChat;
+                  if (res.chatWelcomePending) {
+                    appState.session.chatWelcomePending = true;
+                    triggerChatWelcomeIfNeeded(true);
+                  }
                   SafeStorage.set(EXPERT_CONFIG.storageKeys.session, JSON.stringify(appState.session));
                   syncChatAccessUI();
                 }
                 await loadAdminUsers();
                 setStatusBox(adminStatusBanner, "Доступ к чату обновлён.", "success");
               } else {
+                cb.checked = !nextChat;
                 setStatusBox(adminStatusBanner, (res && res.error) || "Не удалось изменить доступ к чату.", "error");
               }
             } catch (err) {
+              cb.checked = !nextChat;
               setStatusBox(adminStatusBanner, "Ошибка: " + err.message, "error");
+            } finally {
+              cb.disabled = false;
             }
+          });
+        });
+
+        adminUsersListBox.querySelectorAll("[data-admin-popup]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const targetPhone = btn.getAttribute("data-admin-popup");
+            if (adminPopupTargetSelect) adminPopupTargetSelect.value = targetPhone;
+            const box = document.getElementById("adminSendPopupBox");
+            if (box) box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            if (adminPopupMessageInput) setTimeout(() => adminPopupMessageInput.focus(), 180);
           });
         });
 
@@ -4206,6 +5075,9 @@
           btn.addEventListener("click", () => {
             const targetPhone = btn.getAttribute("data-admin-edit");
             openAdminUserEditor(targetPhone);
+            if (adminUserEditorBox) {
+              setTimeout(() => adminUserEditorBox.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+            }
           });
         });
       };
@@ -4217,17 +5089,20 @@
           return;
         }
         try {
-          setStatusBox(adminStatusBanner, "Загрузка списка пользователей из таблицы...", "info");
+          setStatusBox(adminStatusBanner, "Загрузка данных из таблицы...", "info");
           const res = await apiPost("adminUsersList", {
             adminPhone: adminCreds.phone,
             adminPin: adminCreds.pin
           });
           if (res && res.ok && Array.isArray(res.users)) {
             adminUsersCache = res.users;
+            adminAlertsCache = Array.isArray(res.securityAlerts) ? res.securityAlerts : [];
             if (adminAuthForm) adminAuthForm.style.display = "none";
             if (adminPanelContent) adminPanelContent.style.display = "block";
+            populateAdminPopupSelect();
             renderAdminUsersList();
-            setStatusBox(adminStatusBanner, "Пользователей в таблице: " + res.users.length, "success");
+            renderAdminSecurityAlerts();
+            setStatusBox(adminStatusBanner, "Загружено пользователей: " + res.users.length, "success");
             return true;
           }
           const errMsg = (res && res.error) || "Ошибка загрузки пользователей.";
@@ -4247,6 +5122,68 @@
         }
         return false;
       };
+
+      window.__refreshAdminAlertsIfOpen = () => {
+        if (adminModal && adminModal.classList.contains("open") && adminCreds) {
+          loadAdminUsers();
+        }
+      };
+
+      if (adminSendPopupForm) {
+        adminSendPopupForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          if (!adminCreds) return;
+          const targetPhone = normalizePhone11(adminPopupTargetSelect ? adminPopupTargetSelect.value : "");
+          const msg = String(adminPopupMessageInput ? adminPopupMessageInput.value : "").trim();
+          if (!targetPhone || targetPhone.length !== 11) {
+            setStatusBox(adminStatusBanner, "Выберите получателя уведомления.", "error");
+            return;
+          }
+          if (!msg) {
+            setStatusBox(adminStatusBanner, "Введите текст сообщения.", "error");
+            return;
+          }
+          try {
+            setStatusBox(adminStatusBanner, "Отправка личного уведомления...", "info");
+            const res = await apiPost("adminSendPopup", {
+              adminPhone: adminCreds.phone,
+              adminPin: adminCreds.pin,
+              targetPhone,
+              message: msg
+            });
+            if (res && res.ok) {
+              if (adminPopupMessageInput) adminPopupMessageInput.value = "";
+              setStatusBox(adminStatusBanner, "Всплывающее уведомление поставлено в очередь для " + formatPhoneMask(targetPhone) + ".", "success");
+            } else {
+              setStatusBox(adminStatusBanner, (res && res.error) || "Не удалось отправить уведомление.", "error");
+            }
+          } catch (err) {
+            setStatusBox(adminStatusBanner, "Ошибка отправки уведомления: " + err.message, "error");
+          }
+        });
+      }
+
+      if (btnAdminMarkAlertsSeen) {
+        btnAdminMarkAlertsSeen.addEventListener("click", async () => {
+          if (!adminCreds) return;
+          try {
+            setStatusBox(adminStatusBanner, "Обновление статуса алертов безопасности...", "info");
+            const res = await apiPost("adminMarkAlertsSeen", {
+              adminPhone: adminCreds.phone,
+              adminPin: adminCreds.pin
+            });
+            if (res && res.ok) {
+              adminAlertsCache = adminAlertsCache.map((a) => Object.assign({}, a, { seenByAdmin: true }));
+              renderAdminSecurityAlerts();
+              setStatusBox(adminStatusBanner, "Все уведомления безопасности отмечены как прочитанные.", "success");
+            } else {
+              setStatusBox(adminStatusBanner, (res && res.error) || "Не удалось отметить алерты.", "error");
+            }
+          } catch (err) {
+            setStatusBox(adminStatusBanner, "Ошибка: " + err.message, "error");
+          }
+        });
+      }
 
       const openAdminUserEditor = async (targetPhone) => {
         const userObj = adminUsersCache.find((u) => normalizePhone11(u.userId) === normalizePhone11(targetPhone));
@@ -4761,7 +5698,7 @@
       document.addEventListener("touchmove", (e) => {
         if (window.innerWidth > 640 || !e.touches || e.touches.length !== 1) return;
 
-        const scrollable = e.target.closest(".module-view, .chat-messages, .auth-wrapper, .modal-card, .chat-drawer, #contactsListContainer");
+        const scrollable = e.target.closest(".module-view, .chat-messages, .auth-wrapper, .modal-card, .chat-drawer, #contactsListContainer, #adminModalBackdrop");
         if (!scrollable) {
           e.preventDefault();
           return;
