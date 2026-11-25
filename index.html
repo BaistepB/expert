@@ -811,6 +811,24 @@
       gap: 6px;
       border-radius: 8px;
       overflow-y: auto;
+      overscroll-behavior-y: contain;
+      touch-action: pan-y;
+    }
+
+    body.on-hub {
+      height: 100dvh;
+      max-height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    body.on-hub .app-shell,
+    body.on-hub #mainScreen,
+    body.on-hub #hubView {
+      height: 100%;
+      max-height: 100%;
+      min-height: 0;
+      overflow: hidden;
     }
 
     #hubChatContainer .chat-form {
@@ -1906,7 +1924,7 @@
         overflow: hidden;
         overscroll-behavior: none;
         touch-action: none;
-        padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
       }
       .module-view {
         flex: 1;
@@ -1957,7 +1975,7 @@
       #hubChatContainer {
         padding: 7px 10px;
         gap: 5px;
-        margin-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+        margin-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
         margin-right: 0;
       }
       #hubChatContainer .chat-messages {
@@ -2002,7 +2020,7 @@
       }
       .comm-fab-wrap {
         right: 16px;
-        bottom: calc(285px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(170px + env(safe-area-inset-bottom, 0px));
         width: 56px;
         height: 56px;
       }
@@ -3297,6 +3315,7 @@
       if (!MODULE_TITLES[moduleKey]) return;
 
       appState.activeModule = moduleKey;
+      document.body.classList.remove("on-hub");
       document.body.classList.add("in-module");
       const topbarEl = document.querySelector(".topbar");
       if (topbarEl) topbarEl.style.display = "none";
@@ -3326,6 +3345,7 @@
     function backToHub() {
       appState.activeModule = null;
       document.body.classList.remove("in-module");
+      document.body.classList.add("on-hub");
       const topbarEl = document.querySelector(".topbar");
       if (topbarEl) topbarEl.style.display = "flex";
       document.getElementById("moduleView").style.display = "none";
@@ -3373,6 +3393,8 @@
         }
         refreshChat();
       } else {
+        document.body.classList.remove("on-hub");
+        document.body.classList.remove("in-module");
         closeDrawerChat();
         renderChatLists();
       }
