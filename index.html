@@ -425,14 +425,16 @@
       align-items: center;
       justify-content: space-between;
       gap: 14px;
+      margin: 12px 20px 0;
       padding: 12px 20px;
+      border-radius: var(--radius, 16px);
       background: var(--topbar-bg, var(--surface));
       color: var(--topbar-text, var(--text));
-      border-bottom: 1px solid var(--topbar-border, var(--border));
+      border: 1px solid var(--topbar-border, var(--border));
       position: sticky;
-      top: 0;
+      top: 12px;
       z-index: 30;
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow);
       transition: background 0.25s ease, border-color 0.2s ease, color 0.2s ease;
     }
 
@@ -787,12 +789,12 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      padding-bottom: 12px;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     }
 
     #hubChatContainer {
       margin-top: auto;
-      margin-bottom: 10px;
+      margin-bottom: 0;
       flex: 0 0 auto;
       display: flex;
       flex-direction: column;
@@ -822,17 +824,41 @@
       overscroll-behavior: none;
     }
 
-    body.on-hub .app-shell,
-    body.on-hub #mainScreen,
-    body.on-hub #hubView {
+    body.on-hub .app-shell {
       height: 100%;
       max-height: 100%;
       min-height: 0;
       overflow: hidden;
     }
 
+    @media (min-width: 641px) {
+      .app-shell {
+        margin: 12px auto;
+        min-height: calc(100dvh - 24px);
+        border: 1.5px solid var(--border);
+        border-radius: 20px;
+        box-shadow: var(--shadow-lg);
+        overflow-x: hidden;
+      }
+
+      body.on-hub .app-shell {
+        height: calc(100dvh - 24px);
+        max-height: calc(100dvh - 24px);
+      }
+    }
+
+    body.on-hub #mainScreen,
+    body.on-hub #hubView {
+      flex: 1 1 auto;
+      height: auto;
+      max-height: none;
+      min-height: 0;
+      overflow: hidden;
+    }
+
     #hubChatContainer .chat-form {
       gap: 6px;
+      flex-shrink: 0;
     }
 
     #hubChatContainer .chat-form input {
@@ -1891,12 +1917,17 @@
         height: 100dvh;
         max-height: 100dvh;
         min-height: 0;
+        margin: 0;
+        border: none;
+        border-radius: 0;
         overflow: hidden;
         overscroll-behavior: none;
         touch-action: none;
       }
       .topbar {
+        margin: 8px 12px 0;
         padding: 10px 14px;
+        border-radius: 14px;
         flex-shrink: 0;
         touch-action: none;
       }
@@ -1924,7 +1955,7 @@
         overflow: hidden;
         overscroll-behavior: none;
         touch-action: none;
-        padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
       }
       .module-view {
         flex: 1;
@@ -1954,7 +1985,7 @@
         padding: 8px 10px;
         gap: 6px;
         margin-top: auto;
-        margin-bottom: 4px;
+        margin-bottom: 0;
         flex: 0 0 auto;
         touch-action: none;
       }
@@ -1975,7 +2006,7 @@
       #hubChatContainer {
         padding: 7px 10px;
         gap: 5px;
-        margin-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+        margin-bottom: 0;
         margin-right: 0;
       }
       #hubChatContainer .chat-messages {
@@ -1993,6 +2024,7 @@
         gap: 6px;
         width: 100%;
         min-width: 0;
+        flex-shrink: 0;
       }
       #hubChatContainer .chat-form input {
         flex: 1 1 auto;
