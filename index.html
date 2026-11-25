@@ -27,13 +27,13 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <!-- exceljs: ленивая загрузка по требованию (loadScriptOnce) -->
   <!-- Библиотеки для модулей «Маршруты» и «Заявка на склад» -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
+  <!-- tesseract.js: ленивая загрузка по требованию (loadScriptOnce) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <!-- SheetJS XLSX: ленивая загрузка по требованию (loadScriptOnce) -->
 
   <style>
     /* Стили модуля «Автоотчет» */
@@ -2927,6 +2927,32 @@
     /* =========================================================================
        КОНФИГУРАЦИЯ ПРИЛОЖЕНИЯ «ЭКСПЕРТ»
        ========================================================================= */
+
+    /* =========================================================
+       ЛЕНИВЫЙ ЗАГРУЗЧИК ВНЕШНИХ БИБЛИОТЕК
+       Загружает скрипт один раз (если ещё не загружен).
+       ========================================================= */
+    const _loadedScripts = {};
+    const loadScriptOnce = window.loadScriptOnce = function(url) {
+      if (_loadedScripts[url]) return _loadedScripts[url];
+      _loadedScripts[url] = new Promise(function(resolve, reject) {
+        if (document.querySelector('script[src="' + url + '"]')) {
+          return resolve();
+        }
+        var s = document.createElement('script');
+        s.src = url;
+        s.onload = resolve;
+        s.onerror = function() { reject(new Error('Не удалось загрузить: ' + url)); };
+        document.head.appendChild(s);
+      });
+      return _loadedScripts[url];
+    }
+
+    const LAZY_LIB_URLS = window.LAZY_LIB_URLS = {
+      exceljs:  'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js',
+      tesseract:'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js',
+      xlsx:     'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js'
+    };
     const EXPERT_CONFIG = {
       // URL развёрнутого веб-приложения Google Apps Script (exec)
       gasUrl: "https://script.google.com/macros/s/AKfycbxZHtpPQ-Y3w5vmOEsSgHwkyPiv_cmt0RBlvOR8fG3LnNpXhc_z2U6Oq8x0ldj6JkYM/exec",
@@ -2939,6 +2965,8 @@
         session: "expert_hub_session_v1",
         chatCache: "expert_hub_chat_cache_v1",
         contactsCache: "expert_hub_contacts_cache_v1",
+        profileCache: "expert_hub_profile_cache_v1",
+        addressesCache: "expert_hub_addresses_cache_v1",
         // Жёстко защищённый ключ модуля маршрутов (ЗАПРЕЩЕНО затирать и удалять!)
         protectedRouteHistory: "expert_app_route_history_v1"
       }
@@ -3077,8 +3105,9 @@
        ========================================================================= */
     const DARK_THEMES = new Set(["expert-dark", "newyear", "dark", "marine", "coffee"]);
 
-    function applyHubTheme(themeId) {
+    function applyHubTheme(themeId, opts) {
       const safeTheme = themeId || "expert";
+      const skipRemoteSave = Boolean(opts && opts.skipRemoteSave);
       const root = document.documentElement;
       const body = document.body;
 
@@ -3140,11 +3169,133 @@
         }
       }
 
+      if (!skipRemoteSave && typeof appState !== "undefined" && appState.session && EXPERT_CONFIG.gasUrl) {
+        try {
+          const curProf = (window.__EXPERT_PROFILE__ && typeof window.__EXPERT_PROFILE__ === "object")
+            ? { ...window.__EXPERT_PROFILE__, theme: safeTheme }
+            : { theme: safeTheme };
+          window.__EXPERT_PROFILE__ = curProf;
+          SafeStorage.set(EXPERT_CONFIG.storageKeys.profileCache, JSON.stringify(curProf));
+          apiPost("saveUserTheme", {
+            phone: appState.session.phone,
+            pin: appState.session.pin,
+            theme: safeTheme
+          }).catch((err) => console.warn("[Тема] Не удалось сохранить тему в таблицу:", err));
+        } catch (err) {}
+      }
+
       window.dispatchEvent(new CustomEvent("expert:theme_changed", { detail: safeTheme }));
+    }
+
+    function mergeAddressLists(serverList, localList, startPoint) {
+      const result = [];
+      const seen = new Set();
+      const pushAddr = (item) => {
+        if (!item) return;
+        const addr = typeof item === "string" ? item.trim() : String(item.address || "").trim();
+        if (!addr) return;
+        const key = addr.toLowerCase().replace(/\s+/g, " ");
+        if (seen.has(key)) return;
+        seen.add(key);
+        result.push({
+          address: addr,
+          note: typeof item === "object" && item.note ? String(item.note) : ""
+        });
+      };
+      if (Array.isArray(serverList)) serverList.forEach(pushAddr);
+      if (Array.isArray(localList)) localList.forEach(pushAddr);
+      if (startPoint && String(startPoint).trim()) {
+        pushAddr({ address: String(startPoint).trim(), note: "Старт (из профиля)" });
+      }
+      return result;
+    }
+
+    function applySyncedUserData(rawProfile, rawAddresses, opts) {
+      const options = opts || {};
+      const forceReplace = Boolean(options.forceReplace);
+      const prevProf = (window.__EXPERT_PROFILE__ && typeof window.__EXPERT_PROFILE__ === "object")
+        ? window.__EXPERT_PROFILE__
+        : {};
+      const incoming = (rawProfile && typeof rawProfile === "object") ? rawProfile : {};
+
+      const profileFields = [
+        "fullName", "position", "organization", "normSummer", "normWinter",
+        "carBrand", "carPlate", "driverLicense", "fuelType", "startPoint", "theme", "updatedAt"
+      ];
+      const mergedProfile = { ...prevProf };
+      profileFields.forEach((f) => {
+        if (incoming[f] !== undefined) {
+          const val = String(incoming[f] === null ? "" : incoming[f]);
+          if (forceReplace || val !== "" || mergedProfile[f] === undefined) {
+            mergedProfile[f] = val;
+          }
+        }
+      });
+
+      window.__EXPERT_PROFILE__ = mergedProfile;
+      SafeStorage.set(EXPERT_CONFIG.storageKeys.profileCache, JSON.stringify(mergedProfile));
+
+      // Синхронизируем локальный профиль Автоотчёта
+      try {
+        const localRep = JSON.parse(localStorage.getItem("expert_report_profile") || "{}") || {};
+        const nextRep = { ...localRep };
+        [
+          "fullName", "position", "organization", "normSummer", "normWinter",
+          "carBrand", "carPlate", "driverLicense", "fuelType", "startPoint"
+        ].forEach((f) => {
+          if (mergedProfile[f] !== undefined && (forceReplace || String(mergedProfile[f]).trim() !== "" || !nextRep[f])) {
+            nextRep[f] = mergedProfile[f];
+          }
+        });
+        localStorage.setItem("expert_report_profile", JSON.stringify(nextRep));
+      } catch (e) {}
+
+      // Обновляем отображаемое ФИО в шапке и сессии
+      if (typeof appState !== "undefined" && appState.session && mergedProfile.fullName && appState.session.fullName !== mergedProfile.fullName) {
+        appState.session.fullName = mergedProfile.fullName;
+        SafeStorage.set(EXPERT_CONFIG.storageKeys.session, JSON.stringify(appState.session));
+        const nameEl = document.getElementById("currentUserName");
+        if (nameEl) nameEl.textContent = mergedProfile.fullName;
+      }
+
+      // Применяем тему из профиля без повторной отправки на сервер
+      if (mergedProfile.theme && String(mergedProfile.theme).trim()) {
+        const currentTheme = document.documentElement.getAttribute("data-theme") || "";
+        if (currentTheme !== mergedProfile.theme) {
+          applyHubTheme(mergedProfile.theme, { skipRemoteSave: true });
+        }
+      }
+
+      // Синхронизируем справочник адресов
+      let mergedAddresses = window.__EXPERT_ADDRESSES__ || [];
+      if (Array.isArray(rawAddresses) || (mergedProfile.startPoint && String(mergedProfile.startPoint).trim())) {
+        let existingLocal = [];
+        try {
+          existingLocal = JSON.parse(localStorage.getItem("expert_report_addresses") || "[]");
+        } catch (e) { existingLocal = []; }
+        mergedAddresses = forceReplace && Array.isArray(rawAddresses)
+          ? mergeAddressLists(rawAddresses, [], mergedProfile.startPoint)
+          : mergeAddressLists(Array.isArray(rawAddresses) ? rawAddresses : window.__EXPERT_ADDRESSES__, existingLocal, mergedProfile.startPoint);
+        window.__EXPERT_ADDRESSES__ = mergedAddresses;
+        SafeStorage.set(EXPERT_CONFIG.storageKeys.addressesCache, JSON.stringify(mergedAddresses));
+        try {
+          localStorage.setItem("expert_report_addresses", JSON.stringify(mergedAddresses));
+        } catch (e) {}
+      }
+
+      window.dispatchEvent(new CustomEvent("expert:profile_synced", {
+        detail: { profile: mergedProfile, addresses: mergedAddresses, forceReplace }
+      }));
+
+      if (options.syncSession) {
+        syncHubSessionToModules();
+      }
+      return { profile: mergedProfile, addresses: mergedAddresses };
     }
 
     const applyAppTheme = applyHubTheme;
     window.applyHubTheme = applyHubTheme;
+    window.applySyncedUserData = applySyncedUserData;
     window.EXPERT_CONFIG = EXPERT_CONFIG;
 
     /**
@@ -3675,19 +3826,23 @@
       showNextUserPopup();
     }
 
-    async function sendUserHeartbeat(forceRun) {
+    async function sendUserHeartbeat(forceRun, opts) {
       if (!appState.session || !EXPERT_CONFIG.gasUrl) return;
       if (!forceRun && document.hidden) return;
       if (heartbeatInFlight) return;
       const nowMs = Date.now();
       if (!forceRun && nowMs - lastHeartbeatAtMs < 15000) return;
 
+      const includeChat = Boolean(opts && opts.includeChat);
       heartbeatInFlight = true;
       lastHeartbeatAtMs = nowMs;
       try {
+        const includeAddresses = Boolean(opts && (opts.includeAddresses || opts.includeChat));
         const res = await apiPost("userHeartbeat", {
           phone: appState.session.phone,
-          pin: appState.session.pin
+          pin: appState.session.pin,
+          includeChat: includeChat,
+          includeAddresses: includeAddresses
         });
         if (!res || res.ok !== true || !appState.session) return;
 
@@ -3719,6 +3874,19 @@
         if (isSessionAdmin(appState.session) && Array.isArray(res.alerts) && res.alerts.length) {
           enqueueAdminSecurityAlerts(res.alerts);
         }
+        if (Array.isArray(res.messages) && isSessionChatAllowed(appState.session)) {
+          appState.messages = res.messages;
+          SafeStorage.set(EXPERT_CONFIG.storageKeys.chatCache, JSON.stringify(appState.messages));
+          renderChatLists();
+        }
+        if (res.profile && typeof res.profile === "object") {
+          const prevStr = JSON.stringify(window.__EXPERT_PROFILE__ || {});
+          const nextCandidate = { ...(window.__EXPERT_PROFILE__ || {}), ...res.profile };
+          const addrsChanged = Array.isArray(res.addresses) && JSON.stringify(res.addresses) !== JSON.stringify(window.__EXPERT_ADDRESSES__ || []);
+          if (JSON.stringify(nextCandidate) !== prevStr || addrsChanged) {
+            applySyncedUserData(res.profile, res.addresses, { syncSession: false });
+          }
+        }
       } catch (err) {
         console.warn("[Heartbeat] Ошибка фоновой синхронизации:", err);
       } finally {
@@ -3729,7 +3897,7 @@
     function startHeartbeatLoop() {
       stopHeartbeatLoop();
       if (!appState.session) return;
-      sendUserHeartbeat(true);
+      sendUserHeartbeat(true, { includeChat: isSessionChatAllowed(appState.session), includeAddresses: true });
       heartbeatTimerId = setInterval(() => {
         if (!document.hidden && appState.session) {
           sendUserHeartbeat(false);
@@ -3916,9 +4084,15 @@
       return true;
     }
 
-    async function refreshChat() {
+    async function refreshChat(opts) {
+      // Cache-first: немедленно показываем кэш, потом обновляем в фоне
+      const bgOnly = opts && opts.background;
       syncChatAccessUI();
       if (!appState.session) return;
+      if (!bgOnly) {
+        // Мгновенный рендер из кэша без ожидания сети
+        renderChatLists();
+      }
       if (EXPERT_CONFIG.gasUrl) {
         try {
           const res = await apiPost("chatList", {
@@ -3945,14 +4119,21 @@
             }
           }
           if (res && res.ok && Array.isArray(res.messages)) {
+            const prevLen = appState.messages.length;
             appState.messages = res.messages;
             SafeStorage.set(EXPERT_CONFIG.storageKeys.chatCache, JSON.stringify(appState.messages));
+            // Перерисовываем только если данные изменились
+            if (appState.messages.length !== prevLen) {
+              renderChatLists();
+            }
           }
         } catch (err) {
           console.warn("[Чат] Не удалось загрузить свежие сообщения, используется кэш:", err);
         }
       }
-      renderChatLists();
+      if (!bgOnly) {
+        renderChatLists();
+      }
     }
 
     async function sendChatMessage(textValue) {
@@ -4181,9 +4362,6 @@
         if (appState.session.chatWelcomePending) {
           triggerChatWelcomeIfNeeded(true);
         }
-        if (isSessionChatAllowed(appState.session)) {
-          refreshChat();
-        }
         startHeartbeatLoop();
       } else {
         stopHeartbeatLoop();
@@ -4352,12 +4530,12 @@
         });
       }
 
-      // Синхронизация при смене темы из других модулей (например, Автоотчёта)
+      // Синхронизация при смене темы из других модулей (без повторного запроса на сервер)
       window.addEventListener("expert:theme_changed", (e) => {
         if (e && e.detail) {
           const current = document.documentElement.getAttribute("data-theme");
           if (current !== e.detail) {
-            applyHubTheme(e.detail);
+            applyHubTheme(e.detail, { skipRemoteSave: true });
           }
           if (settingsThemeSelect && settingsThemeSelect.value !== e.detail) {
             settingsThemeSelect.value = e.detail;
@@ -4472,16 +4650,20 @@
             });
 
             if (res && res.ok) {
+              const incomingProf = res.profile && typeof res.profile === "object"
+                ? res.profile
+                : { fullName: res.fullName || setupFullName || "", theme: res.theme || "" };
               appState.session = {
                 phone: phone11,
                 pin,
-                fullName: res.fullName || setupFullName || "",
+                fullName: incomingProf.fullName || res.fullName || setupFullName || "",
                 role: res.role || (phone11 === PRIMARY_ADMIN_PHONE ? "admin" : "user"),
                 isAdmin: res.isAdmin !== undefined ? Boolean(res.isAdmin) : (phone11 === PRIMARY_ADMIN_PHONE),
                 chatAllowed: res.chatAllowed !== undefined ? Boolean(res.chatAllowed) : (phone11 === PRIMARY_ADMIN_PHONE),
                 chatWelcomePending: Boolean(res.chatWelcomePending)
               };
               SafeStorage.set(EXPERT_CONFIG.storageKeys.session, JSON.stringify(appState.session));
+              applySyncedUserData(incomingProf, Array.isArray(res.addresses) ? res.addresses : [], { forceReplace: true });
               setStatusBox(statusEl, "", "");
               syncAuthUI();
               syncHubSessionToModules();
@@ -5627,6 +5809,10 @@
         window.dispatchEvent(new CustomEvent('expert:session_changed', { detail: appState.session }));
       } else {
         window.__EXPERT_USER__ = null;
+        window.__EXPERT_PROFILE__ = null;
+        window.__EXPERT_ADDRESSES__ = null;
+        SafeStorage.remove(EXPERT_CONFIG.storageKeys.profileCache);
+        SafeStorage.remove(EXPERT_CONFIG.storageKeys.addressesCache);
         try {
           localStorage.removeItem('expert_app_user_phone');
           localStorage.removeItem('expert_app_user_pin');
@@ -5746,9 +5932,15 @@
     function initExpertHub() {
       startHubClock();
       lockMobileViewportScroll();
-      const initialTheme = SafeStorage.get("expert_app_theme") || "expert";
-      applyHubTheme(initialTheme);
       appState.session = loadInitialSession();
+      try {
+        const cachedProfRaw = SafeStorage.get(EXPERT_CONFIG.storageKeys.profileCache);
+        if (cachedProfRaw) window.__EXPERT_PROFILE__ = JSON.parse(cachedProfRaw);
+        const cachedAddrRaw = SafeStorage.get(EXPERT_CONFIG.storageKeys.addressesCache);
+        if (cachedAddrRaw) window.__EXPERT_ADDRESSES__ = JSON.parse(cachedAddrRaw);
+      } catch (e) {}
+      const cachedTheme = (window.__EXPERT_PROFILE__ && window.__EXPERT_PROFILE__.theme) || SafeStorage.get("expert_app_theme") || "expert";
+      applyHubTheme(cachedTheme, { skipRemoteSave: true });
       appState.messages = loadCachedList(EXPERT_CONFIG.storageKeys.chatCache, DEFAULT_MESSAGES);
       appState.contacts = loadCachedList(EXPERT_CONFIG.storageKeys.contactsCache, DEFAULT_CONTACTS);
       bindEvents();
@@ -7022,6 +7214,9 @@
                 const file = e.target.files[0];
                 if (!file) return;
                 try {
+                    if (typeof ExcelJS === 'undefined') {
+                      await loadScriptOnce(window.LAZY_LIB_URLS ? window.LAZY_LIB_URLS.exceljs : 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js');
+                    }
                     const buf = await file.arrayBuffer();
                     const wb  = new ExcelJS.Workbook();
                     await wb.xlsx.load(buf);
@@ -7985,6 +8180,9 @@
                 const file = e.target.files[0];
                 if (!file) return;
                 try {
+                    if (typeof ExcelJS === 'undefined') {
+                      await (window.loadScriptOnce || loadScriptOnce)(window.LAZY_LIB_URLS ? window.LAZY_LIB_URLS.exceljs : 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js');
+                    }
                     const buf = await file.arrayBuffer();
                     const wb  = new ExcelJS.Workbook();
                     await wb.xlsx.load(buf);
@@ -11643,8 +11841,40 @@
                 }
             });
 
-            /* Слушатель изменений сессии из хаба «Эксперт» */
+            /* Слушатель изменений сессии и синхронизации профиля из хаба «Эксперт» */
             useEffect(() => {
+                const applyIncomingProfile = (prof, addrs, forceReplace) => {
+                    if (prof && typeof prof === 'object') {
+                        isHydratingRef.current = true;
+                        userChangedProfileRef.current = false;
+                        setProfile(prev => {
+                            const next = { ...prev };
+                            [
+                                'fullName', 'position', 'organization', 'normSummer', 'normWinter',
+                                'carBrand', 'carPlate', 'driverLicense', 'fuelType', 'startPoint'
+                            ].forEach((f) => {
+                                if (prof[f] !== undefined) {
+                                    const val = String(prof[f] === null ? '' : prof[f]);
+                                    if (forceReplace || val.trim() !== '' || !next[f]) {
+                                        next[f] = val;
+                                    }
+                                }
+                            });
+                            return next;
+                        });
+                        if (prof.theme && String(prof.theme).trim()) {
+                            setTheme(prof.theme);
+                        }
+                        setTimeout(() => { isHydratingRef.current = false; }, 350);
+                    }
+                    if (Array.isArray(addrs)) {
+                        isHydratingRef.current = true;
+                        userChangedAddressesRef.current = false;
+                        setAddresses(ensureDefaultOfficeAddress(addrs, (prof && prof.startPoint) || ''));
+                        setTimeout(() => { isHydratingRef.current = false; }, 350);
+                    }
+                };
+
                 const onSessionChange = (e) => {
                     const sess = e.detail;
                     if (sess && sess.phone && sess.pin) {
@@ -11653,13 +11883,26 @@
                         setUserPhone(cleanP);
                         setUserPin(cleanPin);
                         setIsAuthVerified(true);
-                        if (sess.fullName) {
+                        if (window.__EXPERT_PROFILE__) {
+                            applyIncomingProfile(window.__EXPERT_PROFILE__, window.__EXPERT_ADDRESSES__, false);
+                        } else if (sess.fullName) {
                             setProfile(prev => prev.fullName ? prev : { ...prev, fullName: sess.fullName });
                         }
                     }
                 };
+                const onProfileSynced = (e) => {
+                    const d = e && e.detail;
+                    if (d && (d.profile || d.addresses)) {
+                        applyIncomingProfile(d.profile, d.addresses, Boolean(d.forceReplace));
+                    }
+                };
+
                 window.addEventListener('expert:session_changed', onSessionChange);
-                return () => window.removeEventListener('expert:session_changed', onSessionChange);
+                window.addEventListener('expert:profile_synced', onProfileSynced);
+                return () => {
+                    window.removeEventListener('expert:session_changed', onSessionChange);
+                    window.removeEventListener('expert:profile_synced', onProfileSynced);
+                };
             }, []);
             const [authError, setAuthError] = useState('');
             const [authLoading, setAuthLoading] = useState(false);
@@ -11686,7 +11929,16 @@
             /* ── Профиль сотрудника ── */
             const [profile, setProfile] = useState(() => {
                 try {
-                    return JSON.parse(localStorage.getItem('expert_report_profile') || '{}');
+                    const localProf = JSON.parse(localStorage.getItem('expert_report_profile') || '{}');
+                    const hubProf = (window.__EXPERT_PROFILE__ && typeof window.__EXPERT_PROFILE__ === 'object') ? window.__EXPERT_PROFILE__ : {};
+                    const merged = { ...localProf };
+                    [
+                        'fullName', 'position', 'organization', 'normSummer', 'normWinter',
+                        'carBrand', 'carPlate', 'driverLicense', 'fuelType', 'startPoint'
+                    ].forEach((f) => {
+                        if (!merged[f] && hubProf[f]) merged[f] = hubProf[f];
+                    });
+                    return merged;
                 } catch { return {}; }
             });
 
@@ -11694,8 +11946,11 @@
             const [addresses, setAddresses] = useState(() => {
                 try {
                     const saved = JSON.parse(localStorage.getItem('expert_report_addresses') || '[]');
+                    const hubAddrs = Array.isArray(window.__EXPERT_ADDRESSES__) ? window.__EXPERT_ADDRESSES__ : [];
+                    const baseAddrs = saved.length ? saved : hubAddrs;
                     const prof = JSON.parse(localStorage.getItem('expert_report_profile') || '{}');
-                    return ensureDefaultOfficeAddress(saved, prof?.startPoint);
+                    const sp = prof?.startPoint || window.__EXPERT_PROFILE__?.startPoint || '';
+                    return ensureDefaultOfficeAddress(baseAddrs, sp);
                 } catch { return ensureDefaultOfficeAddress([], ''); }
             });
 
@@ -12038,7 +12293,8 @@
             }, [settings]);
 
             /* ── Загрузка данных пользователя с сервера ── */
-            const loadUserData = async (phoneToLoad, pinToLoad) => {
+            const loadUserData = async (phoneToLoad, pinToLoad, opts) => {
+                const isSilent = Boolean(opts && opts.silent);
                 const phone = normalizePhone(phoneToLoad || userPhone);
                 const pin = normalizePin(pinToLoad || userPin);
                 const scriptUrl = settings.googleScriptUrl || DEFAULT_GOOGLE_SCRIPT_URL;
@@ -12050,7 +12306,9 @@
 
                 setCloudStatus('syncing');
                 setCloudErrorMsg('');
-                setAuthLoading(true);
+                if (!isSilent) {
+                    setAuthLoading(true);
+                }
                 try {
                     const res = await callGoogleScript(scriptUrl, 'loadUserData', { userId: phone, pin: pin });
 
@@ -12095,6 +12353,9 @@
 
                     if (loadedProfile && typeof loadedProfile === 'object') {
                         setProfile(prev => ({ ...prev, ...loadedProfile }));
+                        if (typeof window.applySyncedUserData === 'function') {
+                            window.applySyncedUserData(loadedProfile, loadedAddresses, { forceReplace: false });
+                        }
                     }
                     if (loadedMonths && typeof loadedMonths === 'object') {
                         const cleanMonths = { ...loadedMonths };
@@ -12167,13 +12428,24 @@
                 }
             };
 
-            /* ── Первичная инициализация при старте ── */
+            /* ── Первичная инициализация: Cache-First при старте + фоновая синхронизация при открытии модуля ── */
+            const autoreportSyncedRef = useRef(false);
+            const autoreportAuthRef = useRef({ verified: isAuthVerified, phone: userPhone, pin: userPin });
+            autoreportAuthRef.current = { verified: isAuthVerified, phone: userPhone, pin: userPin };
+
             useEffect(() => {
-                if (isAuthVerified && userPhone && userPin) {
-                    loadUserData(userPhone, userPin);
-                } else {
-                    isHydratingRef.current = false;
-                }
+                isHydratingRef.current = false;
+                const onModuleOpened = (e) => {
+                    if (e && e.detail === 'autoreport') {
+                        const a = autoreportAuthRef.current;
+                        if (a.verified && a.phone && a.pin && !autoreportSyncedRef.current) {
+                            autoreportSyncedRef.current = true;
+                            loadUserData(a.phone, a.pin, { silent: true });
+                        }
+                    }
+                };
+                window.addEventListener('expert:module_opened', onModuleOpened);
+                return () => window.removeEventListener('expert:module_opened', onModuleOpened);
             }, []);
 
             /* ── Вход пользователя по связке Телефон + ПИН ── */
@@ -12203,7 +12475,7 @@
                 const scriptUrl = settings.googleScriptUrl || DEFAULT_GOOGLE_SCRIPT_URL;
                 if (!isAuthVerified || !phone || phone.length !== 11 || !pin || pin.length !== 4 || !scriptUrl) return;
 
-                const dataToSave = customProfile || profile;
+                const dataToSave = { ...(customProfile || profile), theme: (window.__EXPERT_PROFILE__ && window.__EXPERT_PROFILE__.theme) || theme };
                 setCloudStatus('syncing');
                 setCloudErrorMsg('');
                 try {
@@ -12217,6 +12489,9 @@
                         localStorage.removeItem('expert_app_auth_verified');
                         setAuthError('Неверный ПИН-код! Этот номер уже зарегистрирован другим пользователем.');
                         return;
+                    }
+                    if (typeof window.applySyncedUserData === 'function') {
+                        window.applySyncedUserData((res && res.profile) || dataToSave, addresses, { forceReplace: false });
                     }
                     setCloudStatus('saved');
                     return true;
@@ -12685,8 +12960,12 @@
             const exportReportToExcel = async (exportProfile, exportMonthData) => {
                 if (isExporting) return;
                 if (typeof ExcelJS === 'undefined') {
-                    showToast('Ошибка: библиотека ExcelJS не загружена. Проверьте интернет.', 'error');
-                    return;
+                    try {
+                      await loadScriptOnce(window.LAZY_LIB_URLS ? window.LAZY_LIB_URLS.exceljs : 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js');
+                    } catch (_e) {
+                      showToast('Ошибка: не удалось загрузить библиотеку ExcelJS. Проверьте интернет.', 'error');
+                      return;
+                    }
                 }
                 setIsExporting(true);
                 try {
@@ -13386,7 +13665,12 @@
                     {showSettings && (
                         <SettingsModal
                             theme={theme}
-                            onThemeChange={setTheme}
+                            onThemeChange={(nextTheme) => {
+                                setTheme(nextTheme);
+                                if (typeof window.applyHubTheme === 'function') {
+                                    window.applyHubTheme(nextTheme);
+                                }
+                            }}
                             settings={settings}
                             onSettingsChange={setSettings}
                             userPhone={userPhone}
@@ -14023,12 +14307,100 @@
       });
 
       useEffect(() => {
+        const syncProfileStartToRoutes = (prof, addrs) => {
+          const list = [];
+          const seen = new Set();
+          const pushQ = (val) => {
+            const s = String(val || '').trim();
+            if (!s) return;
+            const k = s.toLowerCase().replace(/\s+/g, ' ');
+            if (seen.has(k)) return;
+            seen.add(k);
+            list.push(s);
+          };
+          if (prof && prof.startPoint) pushQ(prof.startPoint);
+          const addrSource = Array.isArray(addrs) && addrs.length
+            ? addrs
+            : (Array.isArray(window.__EXPERT_ADDRESSES__) ? window.__EXPERT_ADDRESSES__ : (() => {
+                try { return JSON.parse(localStorage.getItem('expert_report_addresses') || '[]'); } catch (e) { return []; }
+              })());
+          addrSource.forEach(a => pushQ(typeof a === 'string' ? a : (a && a.address)));
+          setProfileQuickAddresses(list);
+
+          const sp = prof && prof.startPoint ? String(prof.startPoint).trim() : '';
+          if (sp && !String(customStartRef.current || '').trim()) {
+            setCustomStart(sp);
+            const hasSavedMode = Boolean(localStorage.getItem('expert_route_start_settings') || localStorage.getItem('expert_route_start_type'));
+            if (!hasSavedMode) {
+              setStartType('custom');
+            }
+          }
+        };
+
         const onSessionChanged = (e) => {
           setHubSession(e && e.detail ? e.detail : null);
+          if (e && e.detail && window.__EXPERT_PROFILE__) {
+            syncProfileStartToRoutes(window.__EXPERT_PROFILE__, window.__EXPERT_ADDRESSES__);
+          }
         };
+        const onProfileSynced = (e) => {
+          const d = e && e.detail;
+          if (d) syncProfileStartToRoutes(d.profile, d.addresses);
+        };
+        if (window.__EXPERT_PROFILE__) {
+          syncProfileStartToRoutes(window.__EXPERT_PROFILE__, window.__EXPERT_ADDRESSES__);
+        }
         window.addEventListener('expert:session_changed', onSessionChanged);
-        return () => window.removeEventListener('expert:session_changed', onSessionChanged);
+        window.addEventListener('expert:profile_synced', onProfileSynced);
+        return () => {
+          window.removeEventListener('expert:session_changed', onSessionChanged);
+          window.removeEventListener('expert:profile_synced', onProfileSynced);
+        };
       }, []);
+
+      const saveDefaultStartToProfile = async (addrToSave) => {
+        const cleanAddr = String(addrToSave || customStart || '').trim();
+        if (!cleanAddr) {
+          setSaveToast('Сначала введите адрес старта');
+          setTimeout(() => setSaveToast(''), 2500);
+          return;
+        }
+        const { phone, pin, gasUrl } = getRoutesAuth();
+        if (!phone || phone.length !== 11 || !pin || pin.length !== 4 || !gasUrl) {
+          setSaveToast('Войдите в аккаунт для сохранения основного старта');
+          setTimeout(() => setSaveToast(''), 2500);
+          return;
+        }
+        setSavingDefaultStart(true);
+        try {
+          const nextProf = { ...(window.__EXPERT_PROFILE__ || {}), startPoint: cleanAddr };
+          const resp = await fetch(gasUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: 'saveProfile',
+              userId: phone,
+              pin: pin,
+              profile: nextProf
+            })
+          });
+          const data = await resp.json();
+          if (data && data.ok) {
+            if (typeof window.applySyncedUserData === 'function') {
+              window.applySyncedUserData(data.profile || nextProf, window.__EXPERT_ADDRESSES__, { forceReplace: false });
+            }
+            setSaveToast('Основной старт сохранён в профиле ☁️');
+            setTimeout(() => setSaveToast(''), 2500);
+          } else {
+            throw new Error((data && data.error) || 'Ошибка сохранения');
+          }
+        } catch (err) {
+          setSaveToast('Не удалось сохранить старт в профиле');
+          setTimeout(() => setSaveToast(''), 2500);
+        } finally {
+          setSavingDefaultStart(false);
+        }
+      };
 
       const routesSyncRef = useRef(null);
       useEffect(() => {
@@ -14281,11 +14653,38 @@
           const savedSettings = localStorage.getItem('expert_route_start_settings');
           if (savedSettings) {
             const parsed = JSON.parse(savedSettings);
-            if (parsed && parsed.startAddress !== undefined) return parsed.startAddress;
+            if (parsed && parsed.startAddress) return parsed.startAddress;
           }
         } catch (e) {}
-        return localStorage.getItem('expert_route_custom_start') || '';
+        const localCs = localStorage.getItem('expert_route_custom_start') || '';
+        if (localCs) return localCs;
+        return (window.__EXPERT_PROFILE__ && window.__EXPERT_PROFILE__.startPoint) ? String(window.__EXPERT_PROFILE__.startPoint) : '';
       });
+
+      const [profileQuickAddresses, setProfileQuickAddresses] = useState(() => {
+        const collectQuick = (prof, addrs) => {
+          const list = [];
+          const seen = new Set();
+          const add = (val) => {
+            const s = String(val || '').trim();
+            if (!s) return;
+            const k = s.toLowerCase().replace(/\s+/g, ' ');
+            if (seen.has(k)) return;
+            seen.add(k);
+            list.push(s);
+          };
+          if (prof && prof.startPoint) add(prof.startPoint);
+          if (Array.isArray(addrs)) addrs.forEach(a => add(typeof a === 'string' ? a : (a && a.address)));
+          return list;
+        };
+        let localAddrs = [];
+        try { localAddrs = JSON.parse(localStorage.getItem('expert_report_addresses') || '[]'); } catch (e) {}
+        return collectQuick(window.__EXPERT_PROFILE__, Array.isArray(window.__EXPERT_ADDRESSES__) && window.__EXPERT_ADDRESSES__.length ? window.__EXPERT_ADDRESSES__ : localAddrs);
+      });
+
+      const [savingDefaultStart, setSavingDefaultStart] = useState(false);
+      const customStartRef = useRef(customStart);
+      customStartRef.current = customStart;
 
       const [returnToStart, setReturnToStart] = useState(() => {
         try {
@@ -14816,6 +15215,9 @@
 
             let ocrResult = null;
             try {
+              if (typeof Tesseract === 'undefined') {
+                await (window.loadScriptOnce || function(u){ return new Promise(function(r,j){var s=document.createElement('script');s.src=u;s.onload=r;s.onerror=j;document.head.appendChild(s);}); })(window.LAZY_LIB_URLS ? window.LAZY_LIB_URLS.tesseract : 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js');
+              }
               ocrResult = await Tesseract.recognize(imageUrl, 'rus', {
                 langPath: 'https://tessdata.projectnaptha.com/4.0.0_best',
                 logger: m => {
@@ -14870,6 +15272,9 @@
 
                 const timeItems = [];
                 try {
+                  if (typeof Tesseract === 'undefined') {
+                    await (window.loadScriptOnce || loadScriptOnce)(window.LAZY_LIB_URLS ? window.LAZY_LIB_URLS.tesseract : 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js');
+                  }
                   const timeResult = await Tesseract.recognize(timeImageUrl, 'rus', {
                     langPath: 'https://tessdata.projectnaptha.com/4.0.0_best',
                     logger: m => {
@@ -15840,7 +16245,10 @@
 
       useEffect(() => {
         if (hubSession && hubSession.phone && hubSession.pin) {
-          loadRoutesRef.current && loadRoutesRef.current({ silent: true });
+          const modContainer = document.getElementById('moduleContainer-routes');
+          if (modContainer && modContainer.style.display !== 'none' && loadRoutesRef.current) {
+            loadRoutesRef.current({ silent: true });
+          }
         }
       }, [hubSession]);
 
@@ -16016,7 +16424,7 @@
                     onClick={() => {
                       const themes = ['expert', 'expert-dark', 'newyear', 'dark', 'light', 'marine', 'coffee', 'pink', 'mint', 'pastel'];
                       const nextIdx = (themes.indexOf(theme) + 1) % themes.length;
-                      setTheme(themes[nextIdx]);
+                      changeRoutesTheme(themes[nextIdx]);
                     }} 
                     className={`min-h-[44px] px-3.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all ${
                       theme === 'expert' ? 'bg-[#D32F2F] text-white shadow-sm' : 
@@ -17541,13 +17949,41 @@
                 {/* Поле ввода своего адреса старта */}
                 {startType === 'custom' && (
                   <div className="mt-2">
-                    <input
-                      type="text"
-                      value={customStart}
-                      onChange={(e) => setCustomStart(e.target.value)}
-                      placeholder="Введите адрес начала маршрута (например: Москва, склад)..."
-                      className={`w-full min-h-[48px] px-3 py-2 rounded-lg border text-[16px] sm:text-sm focus:outline-none ${t('bg-[#282B30] border-gray-700 text-white focus:border-[#FFB300]', 'bg-white border-slate-300 text-slate-900 focus:border-amber-500', 'bg-white border-pink-200 text-pink-950 focus:border-pink-500', 'bg-[#162032] border-[#253652] text-blue-50 focus:border-sky-400', 'bg-white border-emerald-200 text-emerald-950 focus:border-emerald-600', 'bg-[#241C19] border-[#3E2F2A] text-[#F5EBE6] focus:border-[#D7B399]', 'bg-white border-slate-300 text-slate-900 focus:border-[#C62828]')}`}
-                    />
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        value={customStart}
+                        onChange={(e) => setCustomStart(e.target.value)}
+                        placeholder="Введите адрес начала маршрута (например: Москва, склад)..."
+                        className={`flex-1 min-h-[48px] px-3 py-2 rounded-lg border text-[16px] sm:text-sm focus:outline-none ${t('bg-[#282B30] border-gray-700 text-white focus:border-[#FFB300]', 'bg-white border-slate-300 text-slate-900 focus:border-amber-500', 'bg-white border-pink-200 text-pink-950 focus:border-pink-500', 'bg-[#162032] border-[#253652] text-blue-50 focus:border-sky-400', 'bg-white border-emerald-200 text-emerald-950 focus:border-emerald-600', 'bg-[#241C19] border-[#3E2F2A] text-[#F5EBE6] focus:border-[#D7B399]', 'bg-white border-slate-300 text-slate-900 focus:border-[#C62828]')}`}
+                      />
+                      <button
+                        type="button"
+                        disabled={savingDefaultStart || !String(customStart || '').trim()}
+                        onClick={() => saveDefaultStartToProfile(customStart)}
+                        title="Сохранить этот адрес как основной старт профиля (для всех устройств)"
+                        className={`min-h-[48px] px-3 py-2 rounded-lg border text-xs font-semibold whitespace-nowrap transition-colors disabled:opacity-50 ${theme === 'pastel' ? 'bg-teal-700 text-white border-teal-700 hover:bg-teal-800' : t('bg-[#33363B] border-gray-600 text-[#FFB300] hover:bg-[#3E4248]', 'bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100', 'bg-pink-50 border-pink-300 text-pink-700 hover:bg-pink-100', 'bg-[#162238] border-sky-500/40 text-sky-200 hover:bg-[#1E3A5F]', 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100', 'bg-[#362924] border-[#6D4C41] text-[#D7B399] hover:bg-[#46352F]', 'bg-rose-50 border-rose-200 text-[#C62828] hover:bg-rose-100')}`}
+                      >
+                        {savingDefaultStart ? 'Сохранение...' : '★ Основной старт'}
+                      </button>
+                    </div>
+                    {profileQuickAddresses.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {profileQuickAddresses.slice(0, 6).map((qAddr, qIdx) => (
+                          <button
+                            key={qIdx}
+                            type="button"
+                            onClick={() => setCustomStart(qAddr)}
+                            className={`px-2.5 py-1 rounded-lg border text-xs transition-colors max-w-full truncate ${customStart === qAddr
+                              ? (theme === 'pastel' ? 'bg-teal-700 text-white border-teal-700' : t('bg-[#FFB300] text-black border-[#FFB300]', 'bg-amber-500 text-white border-amber-500', 'bg-pink-500 text-white border-pink-500', 'bg-sky-500 text-white border-sky-500', 'bg-emerald-600 text-white border-emerald-600', 'bg-[#6D4C41] text-white border-[#6D4C41]', 'bg-[#C62828] text-white border-[#C62828]'))
+                              : t('bg-[#1E2125] border-gray-700 text-gray-300 hover:bg-[#33363B]', 'bg-slate-50 border-slate-300 text-slate-700 hover:bg-slate-100', 'bg-pink-50 border-pink-200 text-pink-800 hover:bg-pink-100', 'bg-[#0B132B] border-[#253652] text-blue-200 hover:bg-[#162238]', 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100', 'bg-[#16110F] border-[#3E2F2A] text-[#D7B399] hover:bg-[#221A17]', 'bg-slate-50 border-slate-300 text-slate-700 hover:bg-slate-100')}`}
+                            title={qAddr}
+                          >
+                            📍 {qAddr}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -18148,16 +18584,22 @@
             const [userProfile, setUserProfile] = useState(() => {
                 try { 
                     const hubUser = window.__EXPERT_USER__;
+                    const hubProf = window.__EXPERT_PROFILE__ || {};
                     const p = JSON.parse(localStorage.getItem('sklad_profile') || '{"name":"","phone":"","address":"","pin":""}');
                     if (hubUser && hubUser.phone && hubUser.pin) {
                         return {
-                            name: p.name || hubUser.fullName || '',
+                            name: p.name || hubProf.fullName || hubUser.fullName || '',
                             phone: hubUser.phone,
-                            address: p.address || '',
+                            address: p.address || hubProf.startPoint || '',
                             pin: hubUser.pin
                         };
                     }
-                    return { name: p.name || '', phone: p.phone || '', address: p.address || '', pin: p.pin || '' };
+                    return {
+                        name: p.name || hubProf.fullName || '',
+                        phone: p.phone || '',
+                        address: p.address || hubProf.startPoint || '',
+                        pin: p.pin || ''
+                    };
                 }
                 catch { return { name: '', phone: '', address: '', pin: '' }; }
             });
@@ -18431,7 +18873,7 @@
                         setShowAuthModal(false);
                         setAuthError('');
                         setPhoneError('');
-                        showToast('Вход выполнен! Данные загружены из облака ☁️');
+                        if (!silent) showToast('Вход выполнен! Данные загружены из облака ☁️');
                         return true;
                     }
 
@@ -18456,40 +18898,81 @@
                 }
             };
 
-            // 1. Автопроверка при вводе 11 цифр телефона И 4 цифр ПИН-кода
+            const warehouseSyncedRef = useRef(false);
+            const warehouseCredsRef = useRef({ phone: userProfile.phone, pin: userProfile.pin, verified: isAuthVerified });
+            warehouseCredsRef.current = { phone: userProfile.phone, pin: userProfile.pin, verified: isAuthVerified };
+
+            // 1. Автопроверка при вводе 11 цифр телефона И 4 цифр ПИН-кода (только если модуль открыт или ещё не привязан)
             useEffect(() => {
+                const modContainer = document.getElementById('moduleContainer-warehouse');
+                const isModOpen = modContainer && modContainer.style.display !== 'none';
                 const cleanPhone = normalizePhone(userProfile.phone);
                 const cleanPin = String(userProfile.pin || '').replace(/\D/g, '').slice(0, 4);
-                if (cleanPhone.length === 11 && cleanPin.length === 4 && lastCheckedPhoneRef.current !== `${cleanPhone}_${cleanPin}`) {
+                if (isModOpen && cleanPhone.length === 11 && cleanPin.length === 4 && lastCheckedPhoneRef.current !== `${cleanPhone}_${cleanPin}`) {
                     const checkTimer = setTimeout(() => {
+                        warehouseSyncedRef.current = true;
                         loadFromCloud(userProfile.phone, userProfile.pin, true);
                     }, 400);
                     return () => clearTimeout(checkTimer);
                 }
             }, [userProfile.phone, userProfile.pin]);
 
-            // Слушатель смены сессии из хаба «Эксперт»
+            // Слушатель смены сессии из хаба «Эксперт» и открытия модуля «Склад»
             useEffect(() => {
                 const onSessionChanged = (e) => {
                     const sess = e && e.detail;
+                    const hubProf = window.__EXPERT_PROFILE__ || {};
                     if (sess && sess.phone && sess.pin) {
                         setUserProfile(prev => ({
                             ...prev,
                             phone: sess.phone,
                             pin: sess.pin,
-                            name: prev.name || sess.fullName || ''
+                            name: prev.name || hubProf.fullName || sess.fullName || '',
+                            address: prev.address || hubProf.startPoint || ''
                         }));
                         setIsAuthVerified(true);
                         setShowAuthModal(false);
                         lastCheckedPhoneRef.current = `${normalizePhone(sess.phone)}_${sess.pin}`;
-                        loadFromCloud(sess.phone, sess.pin, true).catch(() => {});
+                        warehouseSyncedRef.current = false;
+                        const modContainer = document.getElementById('moduleContainer-warehouse');
+                        if (modContainer && modContainer.style.display !== 'none') {
+                            warehouseSyncedRef.current = true;
+                            loadFromCloud(sess.phone, sess.pin, true).catch(() => {});
+                        }
                     } else if (!sess) {
                         setIsAuthVerified(false);
                         lastCheckedPhoneRef.current = '';
+                        warehouseSyncedRef.current = false;
                     }
                 };
+                const onModuleOpened = (e) => {
+                    if (e && e.detail === 'warehouse' && !warehouseSyncedRef.current) {
+                        const c = warehouseCredsRef.current;
+                        const cleanP = normalizePhone(c.phone);
+                        const cleanPin = String(c.pin || '').replace(/\D/g, '').slice(0, 4);
+                        if (c.verified && cleanP.length === 11 && cleanPin.length === 4) {
+                            warehouseSyncedRef.current = true;
+                            loadFromCloud(c.phone, c.pin, true).catch(() => {});
+                        }
+                    }
+                };
+                const onProfileSynced = (e) => {
+                    const prof = e && e.detail && e.detail.profile;
+                    if (!prof) return;
+                    setUserProfile(prev => ({
+                        ...prev,
+                        name: prev.name || prof.fullName || '',
+                        address: prev.address || prof.startPoint || ''
+                    }));
+                };
                 window.addEventListener('expert:session_changed', onSessionChanged);
-                return () => window.removeEventListener('expert:session_changed', onSessionChanged);
+                window.addEventListener('expert:module_opened', onModuleOpened);
+                window.addEventListener('expert:profile_synced', onProfileSynced);
+                return () => {
+                    window.removeEventListener('expert:session_changed', onSessionChanged);
+                    window.removeEventListener('expert:module_opened', onModuleOpened);
+                    window.removeEventListener('expert:profile_synced', onProfileSynced);
+                };
             }, []);
 
             // Регистрация хука автосинхронизации при переходе «Домой»
@@ -18542,9 +19025,16 @@
                 syncToCloud(newOrder, true);
             };
 
-            const handleExcelUpload = (e) => {
+            const handleExcelUpload = async (e) => {
                 const file = e.target.files?.[0];
-                if (!file || !window.XLSX) return;
+                if (!file) return;
+                if (!window.XLSX) {
+                  try {
+                    await loadScriptOnce(window.LAZY_LIB_URLS ? window.LAZY_LIB_URLS.xlsx : 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js');
+                  } catch (_e) {
+                    return;
+                  }
+                }
                 const reader = new FileReader();
                 reader.onload = (evt) => {
                     try {
