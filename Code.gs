@@ -16,7 +16,8 @@ const SHEET_SCHEMAS = {
   "Профили": [
     "userId", "pin", "secretWord", "secretHint", "fullName", "position",
     "organization", "normSummer", "normWinter", "carBrand", "carPlate",
-    "driverLicense", "fuelType", "startPoint", "updatedAt", "role", "chatAllowed"
+    "driverLicense", "fuelType", "startPoint", "updatedAt", "role", "chatAllowed",
+    "lastSeenAt", "chatWelcomePending"
   ],
   "Месяцы": [
     "userId", "yearMonth", "odometerStart", "fuelStart", "odometerEnd",
@@ -44,6 +45,12 @@ const SHEET_SCHEMAS = {
   ],
   "Маршруты_Эксперт": [
     "userId", "pin", "stateJson", "updatedAt"
+  ],
+  "Сообщения_Админа": [
+    "id", "targetPhone", "message", "senderPhone", "createdAt", "readAt"
+  ],
+  "Алерты_Чат": [
+    "id", "userPhone", "userName", "eventType", "details", "createdAt", "seenByAdmin"
   ]
 };
 
@@ -242,8 +249,9 @@ function doPost(e) {
         result = handleContactsList(payload);
         break;
 
-      // ── Администрирование ──
+      // ── Администрирование и статусы активности ──
       case "adminUsersList":
+      case "adminListUsers":
         result = handleAdminUsersList(payload);
         break;
       case "adminUserDetails":
@@ -257,6 +265,24 @@ function doPost(e) {
         break;
       case "adminUserDelete":
         result = handleAdminUserDelete(payload);
+        break;
+      case "userHeartbeat":
+        result = handleUserHeartbeat(payload);
+        break;
+      case "userAckChatWelcome":
+        result = handleUserAckChatWelcome(payload);
+        break;
+      case "adminSendPopup":
+        result = handleAdminSendPopup(payload);
+        break;
+      case "userMarkPopupRead":
+        result = handleUserMarkPopupRead(payload);
+        break;
+      case "logChatSecurityAlert":
+        result = handleLogChatSecurityAlert(payload);
+        break;
+      case "adminMarkAlertsSeen":
+        result = handleAdminMarkAlertsSeen(payload);
         break;
 
       // ── Модуль «Автоотчёт» ──
@@ -336,6 +362,7 @@ function handleAuthLogin(payload) {
 
   var userIsAdmin = isRowAdmin(auth.row, phone);
   var userChatAllowed = isRowChatAllowed(auth.row, phone);
+  var userChatWelcomePending = parseBoolFlag(auth.row.chatWelcomePending);
 
   return {
     ok: true,
@@ -345,7 +372,8 @@ function handleAuthLogin(payload) {
     phone: phone,
     role: userIsAdmin ? "admin" : "user",
     isAdmin: userIsAdmin,
-    chatAllowed: userChatAllowed
+    chatAllowed: userChatAllowed,
+    chatWelcomePending: userChatWelcomePending
   };
 }
 
@@ -739,6 +767,10 @@ function handleSaveProfile(payload) {
   var existingChatAllowed = (auth.exists && auth.row && auth.row.chatAllowed !== undefined && String(auth.row.chatAllowed).trim() !== "")
     ? String(auth.row.chatAllowed)
     : (phone === PRIMARY_ADMIN_PHONE ? "true" : "false");
+  var existingLastSeenAt = auth.exists && auth.row && auth.row.lastSeenAt ? String(auth.row.lastSeenAt) : now;
+  var existingChatWelcomePending = auth.exists && auth.row && auth.row.chatWelcomePending !== undefined
+    ? String(auth.row.chatWelcomePending)
+    : "false";
 
   var headers = SHEET_SCHEMAS["Профили"];
   var rowValues = [];
@@ -762,6 +794,8 @@ function handleSaveProfile(payload) {
     else if (col === "updatedAt") rowValues.push(now);
     else if (col === "role") rowValues.push(existingRole);
     else if (col === "chatAllowed") rowValues.push(existingChatAllowed);
+    else if (col === "lastSeenAt") rowValues.push(existingLastSeenAt);
+    else if (col === "chatWelcomePending") rowValues.push(existingChatWelcomePending);
     else rowValues.push("");
   }
 
@@ -1095,9 +1129,14 @@ function handleAdminUsersList(payload) {
 
   var sheet = getOrCreateSheet("Профили");
   var list = sheetToObjects(sheet);
+  var nowMs = Date.now();
   var users = list.map(function(r) {
     var p = normalizePhone(r.userId);
+    var lastSeenAtStr = r.lastSeenAt ? String(r.lastSeenAt) : "";
+    var lastSeenMs = parseIsoTimeMs(r.lastSeenAt);
+    var isOnline = lastSeenMs > 0 && (nowMs - lastSeenMs) <= 3 * 60 * 1000;
     return {
+      phone: p,
       userId: p,
       pin: normalizePin(r.pin),
       secretWord: r.secretWord || "",
@@ -1113,13 +1152,17 @@ function handleAdminUsersList(payload) {
       fuelType: r.fuelType || "",
       startPoint: r.startPoint || "",
       updatedAt: r.updatedAt || "",
+      lastSeenAt: lastSeenAtStr,
+      isOnline: isOnline,
       role: isRowAdmin(r, p) ? "admin" : "user",
       isAdmin: isRowAdmin(r, p),
-      chatAllowed: isRowChatAllowed(r, p)
+      chatAllowed: isRowChatAllowed(r, p),
+      chatWelcomePending: parseBoolFlag(r.chatWelcomePending)
     };
   });
 
-  return { ok: true, users: users };
+  var securityAlerts = getSecurityAlertsList(30);
+  return { ok: true, users: users, securityAlerts: securityAlerts };
 }
 
 function handleAdminUserDetails(payload) {
@@ -1266,6 +1309,20 @@ function handleAdminUserUpdate(payload) {
   var nextPhone = updates.userId !== undefined ? normalizePhone(updates.userId) : targetPhone;
   if (!nextPhone || nextPhone.length !== 11) nextPhone = targetPhone;
 
+  var wasChatAllowed = isRowChatAllowed(foundRow, targetPhone);
+  var nextChatAllowed = updates.chatAllowed !== undefined ? parseBoolFlag(updates.chatAllowed) : wasChatAllowed;
+  var nextChatWelcomePending = foundRow.chatWelcomePending !== undefined ? String(foundRow.chatWelcomePending) : "false";
+  if (updates.chatAllowed !== undefined) {
+    if (!wasChatAllowed && nextChatAllowed) {
+      nextChatWelcomePending = "true";
+    } else if (!nextChatAllowed) {
+      nextChatWelcomePending = "false";
+    }
+  }
+  if (updates.chatWelcomePending !== undefined) {
+    nextChatWelcomePending = parseBoolFlag(updates.chatWelcomePending) ? "true" : "false";
+  }
+
   var rowValues = [];
   for (var h = 0; h < headers.length; h++) {
     var col = headers[h];
@@ -1281,11 +1338,9 @@ function handleAdminUserUpdate(payload) {
       if (nextPhone === PRIMARY_ADMIN_PHONE) nextRole = "admin";
       rowValues.push(nextRole === "admin" ? "admin" : "user");
     } else if (col === "chatAllowed") {
-      if (updates.chatAllowed !== undefined) {
-        rowValues.push(parseBoolFlag(updates.chatAllowed) ? "true" : "false");
-      } else {
-        rowValues.push(isRowChatAllowed(foundRow, targetPhone) ? "true" : "false");
-      }
+      rowValues.push(nextChatAllowed ? "true" : "false");
+    } else if (col === "chatWelcomePending") {
+      rowValues.push(nextChatWelcomePending);
     } else if (updates[col] !== undefined) {
       rowValues.push(String(updates[col]));
     } else {
@@ -1294,7 +1349,13 @@ function handleAdminUserUpdate(payload) {
   }
 
   sheet.getRange(foundRow._rowIndex, 1, 1, headers.length).setValues([rowValues]);
-  return { ok: true, updated: true, targetPhone: nextPhone };
+  return {
+    ok: true,
+    updated: true,
+    targetPhone: nextPhone,
+    chatAllowed: nextChatAllowed,
+    chatWelcomePending: parseBoolFlag(nextChatWelcomePending)
+  };
 }
 
 function handleAdminToggleChat(payload) {
@@ -1360,4 +1421,246 @@ function handleAdminUserDelete(payload) {
   }
 
   return { ok: true, deleted: true, targetPhone: targetPhone };
+}
+
+function parseIsoTimeMs(val) {
+  if (!val) return 0;
+  if (val instanceof Date) return val.getTime();
+  var parsed = Date.parse(String(val));
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+function updateProfileColumnValue(phone, colName, value) {
+  var sheet = getOrCreateSheet("Профили");
+  var list = sheetToObjects(sheet);
+  var headers = SHEET_SCHEMAS["Профили"];
+  var colIdx = headers.indexOf(colName);
+  if (colIdx < 0) return false;
+
+  for (var i = 0; i < list.length; i++) {
+    if (normalizePhone(list[i].userId) === phone) {
+      sheet.getRange(list[i]._rowIndex, colIdx + 1).setValue(value);
+      return true;
+    }
+  }
+  return false;
+}
+
+function getSecurityAlertsList(limitCount) {
+  var sheet = getOrCreateSheet("Алерты_Чат");
+  var rows = sheetToObjects(sheet);
+  var res = [];
+  for (var i = rows.length - 1; i >= 0; i--) {
+    var r = rows[i];
+    if (!r.id && !r.userPhone) continue;
+    res.push({
+      id: String(r.id || ""),
+      userPhone: normalizePhone(r.userPhone),
+      userName: String(r.userName || ""),
+      eventType: String(r.eventType || ""),
+      details: String(r.details || ""),
+      createdAt: String(r.createdAt || ""),
+      seenByAdmin: parseBoolFlag(r.seenByAdmin)
+    });
+    if (limitCount && res.length >= limitCount) break;
+  }
+  return res;
+}
+
+function handleUserHeartbeat(payload) {
+  var phone = normalizePhone(payload.phone || payload.userId);
+  var pin = normalizePin(payload.pin);
+  if (!phone || pin.length !== 4) {
+    return { ok: false, error: "Укажите телефон и 4-значный ПИН-код." };
+  }
+
+  var auth = checkUserAuth(phone, pin);
+  if (!auth.exists || !auth.ok || !auth.row) {
+    return { ok: false, error: "Ошибка авторизации." };
+  }
+
+  var now = new Date().toISOString();
+  updateProfileColumnValue(phone, "lastSeenAt", now);
+
+  var userIsAdmin = isRowAdmin(auth.row, phone);
+  var userChatAllowed = isRowChatAllowed(auth.row, phone);
+  var chatWelcomePending = parseBoolFlag(auth.row.chatWelcomePending);
+
+  // Непрочитанные всплывающие сообщения от администратора для этого пользователя
+  var msgSheet = getOrCreateSheet("Сообщения_Админа");
+  var msgRows = sheetToObjects(msgSheet);
+  var popups = [];
+  for (var i = 0; i < msgRows.length; i++) {
+    var m = msgRows[i];
+    if (normalizePhone(m.targetPhone) === phone && !String(m.readAt || "").trim()) {
+      popups.push({
+        id: String(m.id || ""),
+        targetPhone: phone,
+        message: String(m.message || ""),
+        senderPhone: normalizePhone(m.senderPhone),
+        createdAt: String(m.createdAt || "")
+      });
+    }
+  }
+
+  // Непросмотренные алерты безопасности для администратора
+  var unseenAlerts = [];
+  if (userIsAdmin) {
+    var allAlerts = getSecurityAlertsList(100);
+    for (var a = 0; a < allAlerts.length; a++) {
+      if (!allAlerts[a].seenByAdmin) {
+        unseenAlerts.push(allAlerts[a]);
+      }
+    }
+  }
+
+  return {
+    ok: true,
+    phone: phone,
+    role: userIsAdmin ? "admin" : "user",
+    isAdmin: userIsAdmin,
+    chatAllowed: userChatAllowed,
+    chatWelcomePending: chatWelcomePending,
+    lastSeenAt: now,
+    popups: popups,
+    alerts: unseenAlerts
+  };
+}
+
+function handleUserAckChatWelcome(payload) {
+  var phone = normalizePhone(payload.phone || payload.userId);
+  var pin = normalizePin(payload.pin);
+  if (!phone || pin.length !== 4) {
+    return { ok: false, error: "Укажите телефон и ПИН-код." };
+  }
+
+  var auth = checkUserAuth(phone, pin);
+  if (!auth.exists || !auth.ok) {
+    return { ok: false, error: "Ошибка авторизации." };
+  }
+
+  updateProfileColumnValue(phone, "chatWelcomePending", "false");
+  return { ok: true, chatWelcomePending: false };
+}
+
+function handleAdminSendPopup(payload) {
+  var check = verifyAdminAccess(payload);
+  if (!check.ok) return check;
+
+  var targetPhone = normalizePhone(payload.targetPhone || payload.userId);
+  var message = String(payload.message || "").trim();
+  if (!targetPhone || targetPhone.length !== 11) {
+    return { ok: false, error: "Укажите корректный телефон получателя." };
+  }
+  if (!message) {
+    return { ok: false, error: "Введите текст сообщения." };
+  }
+
+  var sheet = getOrCreateSheet("Сообщения_Админа");
+  var now = new Date().toISOString();
+  var id = "pop-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6);
+  var headers = SHEET_SCHEMAS["Сообщения_Админа"];
+  var rowValues = [];
+  for (var h = 0; h < headers.length; h++) {
+    var col = headers[h];
+    if (col === "id") rowValues.push(id);
+    else if (col === "targetPhone") rowValues.push(targetPhone);
+    else if (col === "message") rowValues.push(message);
+    else if (col === "senderPhone") rowValues.push(check.adminPhone);
+    else if (col === "createdAt") rowValues.push(now);
+    else if (col === "readAt") rowValues.push("");
+    else rowValues.push("");
+  }
+  sheet.appendRow(rowValues);
+  return { ok: true, id: id, targetPhone: targetPhone, createdAt: now };
+}
+
+function handleUserMarkPopupRead(payload) {
+  var phone = normalizePhone(payload.phone || payload.userId);
+  var pin = normalizePin(payload.pin);
+  var popupId = String(payload.popupId || payload.id || "").trim();
+  if (!phone || pin.length !== 4 || !popupId) {
+    return { ok: false, error: "Недостаточно данных для отметки сообщения." };
+  }
+
+  var auth = checkUserAuth(phone, pin);
+  if (!auth.exists || !auth.ok) {
+    return { ok: false, error: "Ошибка авторизации." };
+  }
+
+  var sheet = getOrCreateSheet("Сообщения_Админа");
+  var rows = sheetToObjects(sheet);
+  var headers = SHEET_SCHEMAS["Сообщения_Админа"];
+  var readColIdx = headers.indexOf("readAt") + 1;
+  var now = new Date().toISOString();
+
+  for (var i = 0; i < rows.length; i++) {
+    if (String(rows[i].id || "") === popupId && normalizePhone(rows[i].targetPhone) === phone) {
+      if (readColIdx > 0) {
+        sheet.getRange(rows[i]._rowIndex, readColIdx).setValue(now);
+      }
+      return { ok: true, id: popupId, readAt: now };
+    }
+  }
+  return { ok: true, id: popupId, readAt: now };
+}
+
+function handleLogChatSecurityAlert(payload) {
+  var phone = normalizePhone(payload.userPhone || payload.phone || payload.userId);
+  var pin = normalizePin(payload.pin);
+  if (!phone || pin.length !== 4) {
+    return { ok: false, error: "Укажите телефон и ПИН-код." };
+  }
+
+  var auth = checkUserAuth(phone, pin);
+  if (!auth.exists || !auth.ok) {
+    return { ok: false, error: "Ошибка авторизации." };
+  }
+
+  var userName = String(payload.userName || (auth.row && auth.row.fullName) || "").trim();
+  var eventType = String(payload.eventType || "unknown").trim();
+  var details = String(payload.details || "").trim();
+  var now = new Date().toISOString();
+  var id = "alr-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6);
+
+  var sheet = getOrCreateSheet("Алерты_Чат");
+  var headers = SHEET_SCHEMAS["Алерты_Чат"];
+  var rowValues = [];
+  for (var h = 0; h < headers.length; h++) {
+    var col = headers[h];
+    if (col === "id") rowValues.push(id);
+    else if (col === "userPhone") rowValues.push(phone);
+    else if (col === "userName") rowValues.push(userName);
+    else if (col === "eventType") rowValues.push(eventType);
+    else if (col === "details") rowValues.push(details);
+    else if (col === "createdAt") rowValues.push(now);
+    else if (col === "seenByAdmin") rowValues.push("false");
+    else rowValues.push("");
+  }
+  sheet.appendRow(rowValues);
+  return { ok: true, id: id, createdAt: now };
+}
+
+function handleAdminMarkAlertsSeen(payload) {
+  var check = verifyAdminAccess(payload);
+  if (!check.ok) return check;
+
+  var alertIds = Array.isArray(payload.alertIds) ? payload.alertIds.map(function (x) { return String(x); }) : null;
+  var sheet = getOrCreateSheet("Алерты_Чат");
+  var rows = sheetToObjects(sheet);
+  var headers = SHEET_SCHEMAS["Алерты_Чат"];
+  var seenColIdx = headers.indexOf("seenByAdmin") + 1;
+  var marked = 0;
+
+  if (seenColIdx > 0) {
+    for (var i = 0; i < rows.length; i++) {
+      var rId = String(rows[i].id || "");
+      var isMatch = !alertIds || alertIds.length === 0 || alertIds.indexOf(rId) !== -1;
+      if (isMatch && !parseBoolFlag(rows[i].seenByAdmin)) {
+        sheet.getRange(rows[i]._rowIndex, seenColIdx).setValue("true");
+        marked++;
+      }
+    }
+  }
+  return { ok: true, marked: marked };
 }
