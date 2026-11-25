@@ -338,6 +338,9 @@ function doPost(e) {
       case "saveUserTheme":
         result = handleSaveUserTheme(payload);
         break;
+      case "loadFullAccountState":
+        result = handleLoadFullAccountState(payload);
+        break;
 
       // ── Чат и Контакты ──
       case "chatList":
@@ -450,8 +453,10 @@ function doPost(e) {
 
 function buildUserProfileObject(row, phone) {
   var r = row || {};
+  var p = normalizePhone(r.userId || phone);
+  var adm = isRowAdmin(r, p);
   return {
-    userId: normalizePhone(r.userId || phone),
+    userId: p,
     fullName: r.fullName || "",
     position: r.position || "",
     organization: r.organization || "",
@@ -463,6 +468,10 @@ function buildUserProfileObject(row, phone) {
     fuelType: r.fuelType || "",
     startPoint: r.startPoint || "",
     theme: r.theme || "",
+    role: adm ? "admin" : "user",
+    isAdmin: adm,
+    chatAllowed: isRowChatAllowed(r, p),
+    chatWelcomePending: parseBoolFlag(r.chatWelcomePending),
     updatedAt: r.updatedAt || ""
   };
 }
@@ -892,26 +901,8 @@ function handleContactsList(payload) {
    ОБРАБОТЧИКИ МОДУЛЯ «АВТООТЧЁТ»
    ========================================================================= */
 
-function handleLoadUserData(payload) {
-  var phone = normalizePhone(payload.userId || payload.phone);
-  var pin = normalizePin(payload.pin);
-
-  if (!phone || pin.length !== 4) {
-    return { ok: false, error: "Укажите номер телефона (11 цифр) и 4-значный ПИН-код." };
-  }
-
-  var auth = checkUserAuth(phone, pin);
-  if (auth.exists && !auth.ok) {
-    return { ok: false, status: "wrong_pin", error: "wrong_pin" };
-  }
-
-  // 1. Профиль
-  var profileObj = {};
-  if (auth.exists && auth.row) {
-    profileObj = buildUserProfileObject(auth.row, phone);
-  }
-
-  // 2. Месяцы
+function getUserMonthsMap(phone) {
+  var p = normalizePhone(phone);
   var monthsSheet = getOrCreateSheet("Месяцы");
   var monthsList = sheetToObjects(monthsSheet);
   var userMonths = {};
@@ -919,7 +910,7 @@ function handleLoadUserData(payload) {
   for (var m = 0; m < monthsList.length; m++) {
     var mRow = monthsList[m];
     var ymKey = normalizeYearMonth(mRow.yearMonth);
-    if (normalizePhone(mRow.userId) === phone && ymKey) {
+    if (normalizePhone(mRow.userId) === p && ymKey) {
       var parsedData = null;
       if (mRow.dataJson) {
         try {
@@ -944,11 +935,10 @@ function handleLoadUserData(payload) {
       userMonths[ymKey] = parsedData;
     }
   }
+  return userMonths;
+}
 
-  // 3. Адреса
-  var userAddresses = getUserAddressesList(phone);
-
-  // 4. Кэш расстояний (общий для всех, кэшируется в CacheService на 300 с)
+function getCachedDistanceCacheMap() {
   var distanceCache = gasCacheGet(GAS_CACHE_DIST_KEY);
   if (!distanceCache || typeof distanceCache !== "object") {
     var distSheet = getOrCreateSheet("Кэш_расстояний");
@@ -963,6 +953,26 @@ function handleLoadUserData(payload) {
     }
     gasCachePut(GAS_CACHE_DIST_KEY, distanceCache, 300);
   }
+  return distanceCache;
+}
+
+function handleLoadUserData(payload) {
+  var phone = normalizePhone(payload.userId || payload.phone);
+  var pin = normalizePin(payload.pin);
+
+  if (!phone || pin.length !== 4) {
+    return { ok: false, error: "Укажите номер телефона (11 цифр) и 4-значный ПИН-код." };
+  }
+
+  var auth = checkUserAuth(phone, pin);
+  if (auth.exists && !auth.ok) {
+    return { ok: false, status: "wrong_pin", error: "wrong_pin" };
+  }
+
+  var profileObj = (auth.exists && auth.row) ? buildUserProfileObject(auth.row, phone) : {};
+  var userMonths = getUserMonthsMap(phone);
+  var userAddresses = getUserAddressesList(phone);
+  var distanceCache = getCachedDistanceCacheMap();
 
   return {
     ok: true,
@@ -973,6 +983,82 @@ function handleLoadUserData(payload) {
     months: userMonths,
     addresses: userAddresses,
     distanceCache: distanceCache
+  };
+}
+
+function handleLoadFullAccountState(payload) {
+  var phone = normalizePhone(payload.phone || payload.userId);
+  var pin = normalizePin(payload.pin);
+
+  if (!phone || pin.length !== 4) {
+    return { ok: false, error: "Укажите номер телефона (11 цифр) и 4-значный ПИН-код." };
+  }
+
+  var auth = checkUserAuth(phone, pin);
+  if (!auth.exists) {
+    return { ok: false, notFound: true, error: "Пользователь не найден." };
+  }
+  if (!auth.ok || !auth.row) {
+    return { ok: false, status: "wrong_pin", error: "Неверный ПИН-код." };
+  }
+
+  var profileObj = buildUserProfileObject(auth.row, phone);
+  var userIsAdmin = profileObj.isAdmin;
+  var userChatAllowed = profileObj.chatAllowed;
+
+  var monthsMap = getUserMonthsMap(phone);
+  var addressesList = getUserAddressesList(phone);
+  var distanceCacheMap = getCachedDistanceCacheMap();
+
+  var routesRes = handleRoutesLoad({ userId: phone, pin: pin });
+  var routesState = (routesRes && routesRes.ok) ? (routesRes.state || null) : null;
+
+  var skladRes = handleSkladLoad({ phone: phone, pin: pin });
+  var skladState = null;
+  if (skladRes && skladRes.ok) {
+    skladState = {
+      fullName: skladRes.fullName || profileObj.fullName || "",
+      address: skladRes.address || profileObj.startPoint || "",
+      stateJson: skladRes.payload || null
+    };
+  }
+
+  var contactsRes = handleContactsList({});
+  var contactsList = (contactsRes && contactsRes.ok && Array.isArray(contactsRes.contacts)) ? contactsRes.contacts : [];
+
+  var chatMessages = userChatAllowed ? getCachedRecentChatMessages() : [];
+
+  var allPendingPopups = getCachedPendingPopups();
+  var adminPopups = [];
+  for (var i = 0; i < allPendingPopups.length; i++) {
+    if (allPendingPopups[i].targetPhone === phone) {
+      adminPopups.push(allPendingPopups[i]);
+    }
+  }
+
+  var adminAlerts = [];
+  if (userIsAdmin) {
+    var allAlerts = getSecurityAlertsList(100);
+    for (var a = 0; a < allAlerts.length; a++) {
+      if (!allAlerts[a].seenByAdmin) {
+        adminAlerts.push(allAlerts[a]);
+      }
+    }
+  }
+
+  return {
+    ok: true,
+    phone: phone,
+    profile: profileObj,
+    months: monthsMap,
+    addresses: addressesList,
+    distanceCache: distanceCacheMap,
+    routesState: routesState,
+    skladState: skladState,
+    contacts: contactsList,
+    chatMessages: chatMessages,
+    adminPopups: adminPopups,
+    adminAlerts: adminAlerts
   };
 }
 
@@ -1376,7 +1462,13 @@ function handleSkladLoad(payload) {
           parsed = null;
         }
       }
-      var foundRes = { ok: true, status: "ok", payload: parsed };
+      var foundRes = {
+        ok: true,
+        status: "ok",
+        fullName: list[i].fullName || "",
+        address: list[i].address || "",
+        payload: parsed
+      };
       gasCachePut(skladCacheKey, foundRes, 180);
       return foundRes;
     }
