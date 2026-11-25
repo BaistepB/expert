@@ -14462,9 +14462,19 @@
         }
         // Если startType === 'none', массив строится строго от первой точки
 
-        // 2. Промежуточные точки
+        const formatPointSegment = (p) => {
+          if (p && p.lat !== undefined && p.lon !== undefined && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lon))) {
+            return `${Number(p.lat)},${Number(p.lon)}`;
+          }
+          if (p && Array.isArray(p.coords) && p.coords.length === 2 && Number.isFinite(Number(p.coords[0])) && Number.isFinite(Number(p.coords[1]))) {
+            return `${Number(p.coords[0])},${Number(p.coords[1])}`;
+          }
+          return encodeURIComponent(String((p && p.address) || '').trim());
+        };
+
+        // 2. Промежуточные точки (приоритет координат lat,lon, иначе адрес)
         validPoints.forEach(p => {
-          segments.push(encodeURIComponent(p.address.trim()));
+          segments.push(formatPointSegment(p));
         });
 
         // 3. Возврат в точку старта (только если не 'none')
@@ -14477,7 +14487,7 @@
         }
 
         const rtextValue = segments.join('~');
-        const routeQuery = `rtext=${rtextValue}&rtt=auto`;
+        const routeQuery = `mode=routes&rtt=auto&rtext=${rtextValue}`;
         const webUrl = `https://yandex.ru/maps/?${routeQuery}`;
         const yandexMapsAppUrl = `yandexmaps://maps.yandex.ru/?${routeQuery}`;
 
