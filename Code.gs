@@ -12,12 +12,101 @@
 
 var PRIMARY_ADMIN_PHONE = "79037244714";
 
+/* =========================================================================
+   СЕРВЕРНЫЙ КЭШ (CacheService)
+   TTL: контакты — 180 с, список чата — 30 с, список пользователей — 60 с
+   Инвалидируется при любом изменении соответствующих данных.
+   ========================================================================= */
+var GAS_CACHE_CONTACTS_KEY     = "expert_contacts_v1";
+var GAS_CACHE_CHAT_KEY         = "expert_chat_v1";
+var GAS_CACHE_PROFILES_KEY     = "expert_profiles_v1";
+var GAS_CACHE_LAST_SEEN_KEY    = "expert_last_seen_v1";
+var GAS_CACHE_POPUPS_KEY       = "expert_popups_v1";
+var GAS_CACHE_ALERTS_KEY       = "expert_alerts_v1";
+var GAS_CACHE_DIST_KEY         = "expert_dist_cache_v1";
+var GAS_CACHE_SHEETS_READY_KEY = "expert_sheets_ready_v2";
+var GAS_CACHE_SKLAD_PREFIX     = "expert_sklad_v1_";
+var GAS_CACHE_ADDR_PREFIX      = "expert_addr_v1_";
+
+var _memSheetsCache = {};
+var _memProfilesList = null;
+
+function gasCacheGet(key) {
+  try {
+    var c = CacheService.getScriptCache();
+    var raw = c.get(key);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+function gasCachePut(key, value, ttlSeconds) {
+  try {
+    var c = CacheService.getScriptCache();
+    var str = JSON.stringify(value);
+    if (str.length > 98000) return; // лимит CacheService ~100КБ
+    c.put(key, str, ttlSeconds || 180);
+  } catch (e) {
+    // Если кэш недоступен — не падаем, просто работаем без кэша
+  }
+}
+
+function gasCacheRemove(key) {
+  try {
+    CacheService.getScriptCache().remove(key);
+  } catch (e) {}
+}
+
+function gasCacheRemoveMulti(keys) {
+  try {
+    CacheService.getScriptCache().removeAll(keys);
+  } catch (e) {}
+}
+
+function getCachedProfilesRows(forceFresh) {
+  if (!forceFresh && _memProfilesList) {
+    return _memProfilesList;
+  }
+  if (!forceFresh) {
+    var cached = gasCacheGet(GAS_CACHE_PROFILES_KEY);
+    if (Array.isArray(cached)) {
+      _memProfilesList = cached;
+      return cached;
+    }
+  }
+  var sheet = getOrCreateSheet("Профили");
+  var list = sheetToObjects(sheet);
+  _memProfilesList = list;
+  gasCachePut(GAS_CACHE_PROFILES_KEY, list, 180);
+  return list;
+}
+
+function invalidateProfilesCache() {
+  _memProfilesList = null;
+  gasCacheRemove(GAS_CACHE_PROFILES_KEY);
+}
+
+function getLastSeenMap() {
+  var m = gasCacheGet(GAS_CACHE_LAST_SEEN_KEY);
+  return (m && typeof m === "object") ? m : {};
+}
+
+function touchLastSeenInCache(phone, isoNow) {
+  try {
+    var m = getLastSeenMap();
+    m[phone] = isoNow;
+    gasCachePut(GAS_CACHE_LAST_SEEN_KEY, m, 300);
+  } catch (e) {}
+}
+
 const SHEET_SCHEMAS = {
   "Профили": [
     "userId", "pin", "secretWord", "secretHint", "fullName", "position",
     "organization", "normSummer", "normWinter", "carBrand", "carPlate",
     "driverLicense", "fuelType", "startPoint", "updatedAt", "role", "chatAllowed",
-    "lastSeenAt", "chatWelcomePending"
+    "lastSeenAt", "chatWelcomePending", "theme"
   ],
   "Месяцы": [
     "userId", "yearMonth", "odometerStart", "fuelStart", "odometerEnd",
@@ -84,6 +173,9 @@ function makeDistanceCacheKey(addr1, addr2) {
 }
 
 function getOrCreateSheet(sheetName) {
+  if (_memSheetsCache[sheetName]) {
+    return _memSheetsCache[sheetName];
+  }
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(sheetName);
   var schema = SHEET_SCHEMAS[sheetName];
@@ -94,24 +186,27 @@ function getOrCreateSheet(sheetName) {
       sheet.getRange(1, 1, 1, schema.length).setValues([schema]);
       sheet.setFrozenRows(1);
     }
-  } else if (schema && sheet.getLastRow() === 0) {
-    sheet.getRange(1, 1, 1, schema.length).setValues([schema]);
-    sheet.setFrozenRows(1);
-  } else if (schema && schema.length > 0) {
-    var lastCol = sheet.getLastColumn();
-    if (lastCol < schema.length) {
-      var existingHeaders = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
-      var missing = [];
-      for (var i = lastCol; i < schema.length; i++) {
-        if (existingHeaders.indexOf(schema[i]) === -1) {
-          missing.push(schema[i]);
+  } else if (!gasCacheGet(GAS_CACHE_SHEETS_READY_KEY)) {
+    if (schema && sheet.getLastRow() === 0) {
+      sheet.getRange(1, 1, 1, schema.length).setValues([schema]);
+      sheet.setFrozenRows(1);
+    } else if (schema && schema.length > 0) {
+      var lastCol = sheet.getLastColumn();
+      if (lastCol < schema.length) {
+        var existingHeaders = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+        var missing = [];
+        for (var i = lastCol; i < schema.length; i++) {
+          if (existingHeaders.indexOf(schema[i]) === -1) {
+            missing.push(schema[i]);
+          }
         }
-      }
-      if (missing.length > 0) {
-        sheet.getRange(1, lastCol + 1, 1, missing.length).setValues([missing]);
+        if (missing.length > 0) {
+          sheet.getRange(1, lastCol + 1, 1, missing.length).setValues([missing]);
+        }
       }
     }
   }
+  _memSheetsCache[sheetName] = sheet;
   return sheet;
 }
 
@@ -151,9 +246,13 @@ function verifyAdminAccess(payload) {
 }
 
 function initAllSheets() {
+  if (gasCacheGet(GAS_CACHE_SHEETS_READY_KEY)) {
+    return;
+  }
   for (var name in SHEET_SCHEMAS) {
     getOrCreateSheet(name);
   }
+  gasCachePut(GAS_CACHE_SHEETS_READY_KEY, 1, 600);
 }
 
 function sheetToObjects(sheet) {
@@ -176,8 +275,7 @@ function sheetToObjects(sheet) {
 }
 
 function checkUserAuth(phone, pin) {
-  var sheet = getOrCreateSheet("Профили");
-  var list = sheetToObjects(sheet);
+  var list = getCachedProfilesRows(false);
   for (var i = 0; i < list.length; i++) {
     if (normalizePhone(list[i].userId) === phone) {
       if (normalizePin(list[i].pin) === pin) {
@@ -233,6 +331,12 @@ function doPost(e) {
         break;
       case "authResetPin":
         result = handleAuthResetPin(payload);
+        break;
+      case "getProfile":
+        result = handleGetProfile(payload);
+        break;
+      case "saveUserTheme":
+        result = handleSaveUserTheme(payload);
         break;
 
       // ── Чат и Контакты ──
@@ -344,6 +448,49 @@ function doPost(e) {
    ОБРАБОТЧИКИ КАРКАСА («ЭКСПЕРТ»)
    ========================================================================= */
 
+function buildUserProfileObject(row, phone) {
+  var r = row || {};
+  return {
+    userId: normalizePhone(r.userId || phone),
+    fullName: r.fullName || "",
+    position: r.position || "",
+    organization: r.organization || "",
+    normSummer: r.normSummer || "",
+    normWinter: r.normWinter || "",
+    carBrand: r.carBrand || "",
+    carPlate: r.carPlate || "",
+    driverLicense: r.driverLicense || "",
+    fuelType: r.fuelType || "",
+    startPoint: r.startPoint || "",
+    theme: r.theme || "",
+    updatedAt: r.updatedAt || ""
+  };
+}
+
+function getUserAddressesList(phone) {
+  var p = normalizePhone(phone);
+  if (!p) return [];
+  var cacheKey = GAS_CACHE_ADDR_PREFIX + p;
+  var cached = gasCacheGet(cacheKey);
+  if (Array.isArray(cached)) {
+    return cached;
+  }
+  var addrSheet = getOrCreateSheet("Справочник_адресов");
+  var addrList = sheetToObjects(addrSheet);
+  var userAddresses = [];
+  for (var a = 0; a < addrList.length; a++) {
+    var aRow = addrList[a];
+    if (normalizePhone(aRow.userId) === p && aRow.address) {
+      userAddresses.push({
+        address: String(aRow.address),
+        note: String(aRow.note || "")
+      });
+    }
+  }
+  gasCachePut(cacheKey, userAddresses, 180);
+  return userAddresses;
+}
+
 function handleAuthLogin(payload) {
   var phone = normalizePhone(payload.phone || payload.userId);
   var pin = normalizePin(payload.pin);
@@ -363,18 +510,78 @@ function handleAuthLogin(payload) {
   var userIsAdmin = isRowAdmin(auth.row, phone);
   var userChatAllowed = isRowChatAllowed(auth.row, phone);
   var userChatWelcomePending = parseBoolFlag(auth.row.chatWelcomePending);
+  var profileObj = buildUserProfileObject(auth.row, phone);
+  var userAddresses = getUserAddressesList(phone);
 
   return {
     ok: true,
     userId: auth.row.userId,
     fullName: auth.row.fullName || "",
     position: auth.row.position || "",
+    theme: profileObj.theme,
     phone: phone,
     role: userIsAdmin ? "admin" : "user",
     isAdmin: userIsAdmin,
     chatAllowed: userChatAllowed,
-    chatWelcomePending: userChatWelcomePending
+    chatWelcomePending: userChatWelcomePending,
+    profile: profileObj,
+    addresses: userAddresses
   };
+}
+
+function handleGetProfile(payload) {
+  var phone = normalizePhone(payload.phone || payload.userId);
+  var pin = normalizePin(payload.pin);
+
+  if (!phone || pin.length !== 4) {
+    return { ok: false, error: "Укажите номер телефона и 4-значный ПИН-код." };
+  }
+
+  var auth = checkUserAuth(phone, pin);
+  if (!auth.exists || !auth.ok || !auth.row) {
+    return { ok: false, error: "Ошибка авторизации." };
+  }
+
+  return {
+    ok: true,
+    phone: phone,
+    profile: buildUserProfileObject(auth.row, phone),
+    addresses: getUserAddressesList(phone)
+  };
+}
+
+function handleSaveUserTheme(payload) {
+  var phone = normalizePhone(payload.phone || payload.userId);
+  var pin = normalizePin(payload.pin);
+  var nextTheme = String(payload.theme || "").trim();
+
+  if (!phone || pin.length !== 4) {
+    return { ok: false, error: "Укажите телефон и ПИН-код." };
+  }
+  if (!nextTheme) {
+    return { ok: false, error: "Не указана тема оформления." };
+  }
+
+  var auth = checkUserAuth(phone, pin);
+  if (!auth.exists || !auth.ok || !auth.row) {
+    return { ok: false, error: "Ошибка авторизации." };
+  }
+
+  var sheet = getOrCreateSheet("Профили");
+  var headers = SHEET_SCHEMAS["Профили"];
+  var now = new Date().toISOString();
+  var rowValues = [];
+  for (var h = 0; h < headers.length; h++) {
+    var col = headers[h];
+    if (col === "theme") rowValues.push(nextTheme);
+    else if (col === "updatedAt") rowValues.push(now);
+    else rowValues.push(auth.row[col] !== undefined ? auth.row[col] : "");
+  }
+
+  sheet.getRange(auth.row._rowIndex, 1, 1, headers.length).setValues([rowValues]);
+  invalidateProfilesCache();
+
+  return { ok: true, theme: nextTheme, updatedAt: now };
 }
 
 function handleAuthSetupPin(payload) {
@@ -392,7 +599,7 @@ function handleAuthSetupPin(payload) {
   }
 
   var sheet = getOrCreateSheet("Профили");
-  var list = sheetToObjects(sheet);
+  var list = getCachedProfilesRows(true);
   var now = new Date().toISOString();
   var foundRowIndex = -1;
   var existingRow = null;
@@ -410,6 +617,10 @@ function handleAuthSetupPin(payload) {
     ? String(existingRow.chatAllowed)
     : (phone === PRIMARY_ADMIN_PHONE ? "true" : "false");
 
+  var assignedTheme = (payload.theme && String(payload.theme).trim())
+    ? String(payload.theme).trim()
+    : (existingRow && existingRow.theme ? String(existingRow.theme) : "");
+
   var headers = SHEET_SCHEMAS["Профили"];
   var rowValues = [];
   for (var h = 0; h < headers.length; h++) {
@@ -422,6 +633,7 @@ function handleAuthSetupPin(payload) {
     else if (col === "updatedAt") rowValues.push(now);
     else if (col === "role") rowValues.push(assignedRole);
     else if (col === "chatAllowed") rowValues.push(assignedChatAllowed);
+    else if (col === "theme") rowValues.push(assignedTheme);
     else rowValues.push(existingRow && existingRow[col] !== undefined ? existingRow[col] : "");
   }
 
@@ -430,15 +642,34 @@ function handleAuthSetupPin(payload) {
   } else {
     sheet.appendRow(rowValues);
   }
+  invalidateProfilesCache();
 
   var isAdm = isRowAdmin({ userId: phone, role: assignedRole }, phone);
+  var setupProfile = buildUserProfileObject({
+    userId: phone,
+    fullName: fullName,
+    position: existingRow ? existingRow.position : "",
+    organization: existingRow ? existingRow.organization : "",
+    normSummer: existingRow ? existingRow.normSummer : "",
+    normWinter: existingRow ? existingRow.normWinter : "",
+    carBrand: existingRow ? existingRow.carBrand : "",
+    carPlate: existingRow ? existingRow.carPlate : "",
+    driverLicense: existingRow ? existingRow.driverLicense : "",
+    fuelType: existingRow ? existingRow.fuelType : "",
+    startPoint: existingRow ? existingRow.startPoint : "",
+    theme: assignedTheme,
+    updatedAt: now
+  }, phone);
   return {
     ok: true,
     phone: phone,
     fullName: fullName,
+    theme: assignedTheme,
     role: isAdm ? "admin" : "user",
     isAdmin: isAdm,
-    chatAllowed: parseBoolFlag(assignedChatAllowed)
+    chatAllowed: parseBoolFlag(assignedChatAllowed),
+    profile: setupProfile,
+    addresses: getUserAddressesList(phone)
   };
 }
 
@@ -448,8 +679,7 @@ function handleAuthGetHint(payload) {
     return { ok: false, error: "Укажите номер телефона." };
   }
 
-  var sheet = getOrCreateSheet("Профили");
-  var list = sheetToObjects(sheet);
+  var list = getCachedProfilesRows(false);
 
   for (var i = 0; i < list.length; i++) {
     if (normalizePhone(list[i].userId) === phone) {
@@ -474,7 +704,7 @@ function handleAuthResetPin(payload) {
   }
 
   var sheet = getOrCreateSheet("Профили");
-  var list = sheetToObjects(sheet);
+  var list = getCachedProfilesRows(false);
 
   for (var i = 0; i < list.length; i++) {
     if (normalizePhone(list[i].userId) === phone) {
@@ -485,17 +715,46 @@ function handleAuthResetPin(payload) {
 
       var rowIndex = list[i]._rowIndex;
       var headers = SHEET_SCHEMAS["Профили"];
-      var pinCol = headers.indexOf("pin") + 1;
-      var updatedCol = headers.indexOf("updatedAt") + 1;
 
-      sheet.getRange(rowIndex, pinCol).setValue(newPin);
-      sheet.getRange(rowIndex, updatedCol).setValue(new Date().toISOString());
+      // Пакетная запись в одном вызове setValues
+      var now = new Date().toISOString();
+      var rowArr = [];
+      for (var c = 0; c < headers.length; c++) {
+        var h = headers[c];
+        if (h === "pin") rowArr.push(newPin);
+        else if (h === "updatedAt") rowArr.push(now);
+        else rowArr.push(list[i][h] !== undefined ? list[i][h] : "");
+      }
+      sheet.getRange(rowIndex, 1, 1, headers.length).setValues([rowArr]);
+      invalidateProfilesCache();
 
       return { ok: true, message: "ПИН-код успешно обновлён." };
     }
   }
 
   return { ok: false, error: "Пользователь с таким номером не найден." };
+}
+
+function getCachedRecentChatMessages() {
+  var cached = gasCacheGet(GAS_CACHE_CHAT_KEY);
+  if (cached && Array.isArray(cached.messages)) {
+    return cached.messages;
+  }
+  var sheet = getOrCreateSheet("Чат_Эксперт");
+  var list = sheetToObjects(sheet);
+  var recent = list.slice(-50);
+  var formatted = recent.map(function(r) {
+    return {
+      id: r.id || ("msg-" + r._rowIndex),
+      date: r.date || "",
+      time: r.time || "",
+      userName: r.userName || "",
+      userPhone: r.userPhone || "",
+      message: r.message || ""
+    };
+  });
+  gasCachePut(GAS_CACHE_CHAT_KEY, { messages: formatted }, 180);
+  return formatted;
 }
 
 function handleChatList(payload) {
@@ -524,21 +783,7 @@ function handleChatList(payload) {
     };
   }
 
-  var sheet = getOrCreateSheet("Чат_Эксперт");
-  var list = sheetToObjects(sheet);
-  var recent = list.slice(-50);
-
-  var formatted = recent.map(function(r) {
-    return {
-      id: r.id || ("msg-" + r._rowIndex),
-      date: r.date || "",
-      time: r.time || "",
-      userName: r.userName || "",
-      userPhone: r.userPhone || "",
-      message: r.message || ""
-    };
-  });
-
+  var formatted = getCachedRecentChatMessages();
   return { ok: true, chatAllowed: true, isAdmin: userIsAdmin, messages: formatted };
 }
 
@@ -576,6 +821,8 @@ function handleChatSend(payload) {
   var createdAt = new Date().toISOString();
 
   sheet.appendRow([id, date, time, userName, phone, text, createdAt]);
+  // Инвалидируем кэш чата после отправки нового сообщения
+  gasCacheRemove(GAS_CACHE_CHAT_KEY);
   return { ok: true, id: id };
 }
 
@@ -597,6 +844,7 @@ function handleChatClean(payload) {
       sheet.getRange(2, 1, deletedCount, lastCol).clearContent();
     }
   }
+  gasCacheRemove(GAS_CACHE_CHAT_KEY);
 
   return {
     ok: true,
@@ -607,6 +855,12 @@ function handleChatClean(payload) {
 }
 
 function handleContactsList(payload) {
+  // Кэш на 180 секунд — контакты меняются редко
+  var cached = gasCacheGet(GAS_CACHE_CONTACTS_KEY);
+  if (cached && Array.isArray(cached.contacts)) {
+    return cached;
+  }
+
   var sheet = getOrCreateSheet("Контакты_Эксперт");
   var list = sheetToObjects(sheet);
 
@@ -616,9 +870,7 @@ function handleContactsList(payload) {
       ["c-2", "Складской комплекс / ПВЗ", "+7 999 123 45 67", "Приёмка и выдача заказов", new Date().toISOString()],
       ["c-3", "Диспетчерская служба", "+7 900 111 22 33", "Маршруты и путевые листы", new Date().toISOString()]
     ];
-    for (var d = 0; d < defaults.length; d++) {
-      sheet.appendRow(defaults[d]);
-    }
+    sheet.getRange(2, 1, defaults.length, defaults[0].length).setValues(defaults);
     list = sheetToObjects(sheet);
   }
 
@@ -631,7 +883,9 @@ function handleContactsList(payload) {
     };
   });
 
-  return { ok: true, contacts: formatted };
+  var result = { ok: true, contacts: formatted };
+  gasCachePut(GAS_CACHE_CONTACTS_KEY, result, 180);
+  return result;
 }
 
 /* =========================================================================
@@ -654,19 +908,7 @@ function handleLoadUserData(payload) {
   // 1. Профиль
   var profileObj = {};
   if (auth.exists && auth.row) {
-    var r = auth.row;
-    profileObj = {
-      fullName: r.fullName || "",
-      position: r.position || "",
-      organization: r.organization || "",
-      normSummer: r.normSummer || "",
-      normWinter: r.normWinter || "",
-      carBrand: r.carBrand || "",
-      carPlate: r.carPlate || "",
-      driverLicense: r.driverLicense || "",
-      fuelType: r.fuelType || "",
-      startPoint: r.startPoint || ""
-    };
+    profileObj = buildUserProfileObject(auth.row, phone);
   }
 
   // 2. Месяцы
@@ -704,31 +946,22 @@ function handleLoadUserData(payload) {
   }
 
   // 3. Адреса
-  var addrSheet = getOrCreateSheet("Справочник_адресов");
-  var addrList = sheetToObjects(addrSheet);
-  var userAddresses = [];
+  var userAddresses = getUserAddressesList(phone);
 
-  for (var a = 0; a < addrList.length; a++) {
-    var aRow = addrList[a];
-    if (normalizePhone(aRow.userId) === phone && aRow.address) {
-      userAddresses.push({
-        address: aRow.address,
-        note: aRow.note || ""
-      });
+  // 4. Кэш расстояний (общий для всех, кэшируется в CacheService на 300 с)
+  var distanceCache = gasCacheGet(GAS_CACHE_DIST_KEY);
+  if (!distanceCache || typeof distanceCache !== "object") {
+    var distSheet = getOrCreateSheet("Кэш_расстояний");
+    var distList = sheetToObjects(distSheet);
+    distanceCache = {};
+    for (var d = 0; d < distList.length; d++) {
+      var dRow = distList[d];
+      if (dRow.fromAddress && dRow.toAddress && dRow.km !== undefined && dRow.km !== "") {
+        var cKey = makeDistanceCacheKey(dRow.fromAddress, dRow.toAddress);
+        distanceCache[cKey] = Number(dRow.km) || 0;
+      }
     }
-  }
-
-  // 4. Кэш расстояний (общий для всех)
-  var distSheet = getOrCreateSheet("Кэш_расстояний");
-  var distList = sheetToObjects(distSheet);
-  var distanceCache = {};
-
-  for (var d = 0; d < distList.length; d++) {
-    var dRow = distList[d];
-    if (dRow.fromAddress && dRow.toAddress && dRow.km !== undefined && dRow.km !== "") {
-      var cKey = makeDistanceCacheKey(dRow.fromAddress, dRow.toAddress);
-      distanceCache[cKey] = Number(dRow.km) || 0;
-    }
+    gasCachePut(GAS_CACHE_DIST_KEY, distanceCache, 300);
   }
 
   return {
@@ -758,7 +991,6 @@ function handleSaveProfile(payload) {
   }
 
   var sheet = getOrCreateSheet("Профили");
-  var list = sheetToObjects(sheet);
   var now = new Date().toISOString();
   var foundRowIndex = auth.exists && auth.row ? auth.row._rowIndex : -1;
   var existingSecretWord = auth.exists && auth.row ? (auth.row.secretWord || "") : "";
@@ -772,8 +1004,19 @@ function handleSaveProfile(payload) {
     ? String(auth.row.chatWelcomePending)
     : "false";
 
+  var prevRow = auth.exists && auth.row ? auth.row : {};
   var headers = SHEET_SCHEMAS["Профили"];
   var rowValues = [];
+
+  var pickProfileField = function(field) {
+    if (profile && profile[field] !== undefined) {
+      return String(profile[field] === null ? "" : profile[field]);
+    }
+    if (payload[field] !== undefined) {
+      return String(payload[field] === null ? "" : payload[field]);
+    }
+    return prevRow[field] !== undefined && prevRow[field] !== null ? String(prevRow[field]) : "";
+  };
 
   for (var h = 0; h < headers.length; h++) {
     var col = headers[h];
@@ -781,16 +1024,12 @@ function handleSaveProfile(payload) {
     else if (col === "pin") rowValues.push(pin);
     else if (col === "secretWord") rowValues.push(existingSecretWord);
     else if (col === "secretHint") rowValues.push(existingSecretHint);
-    else if (col === "fullName") rowValues.push(profile.fullName || "");
-    else if (col === "position") rowValues.push(profile.position || "");
-    else if (col === "organization") rowValues.push(profile.organization || "");
-    else if (col === "normSummer") rowValues.push(profile.normSummer || "");
-    else if (col === "normWinter") rowValues.push(profile.normWinter || "");
-    else if (col === "carBrand") rowValues.push(profile.carBrand || "");
-    else if (col === "carPlate") rowValues.push(profile.carPlate || "");
-    else if (col === "driverLicense") rowValues.push(profile.driverLicense || "");
-    else if (col === "fuelType") rowValues.push(profile.fuelType || "");
-    else if (col === "startPoint") rowValues.push(profile.startPoint || "");
+    else if (col === "fullName" || col === "position" || col === "organization" ||
+             col === "normSummer" || col === "normWinter" || col === "carBrand" ||
+             col === "carPlate" || col === "driverLicense" || col === "fuelType" ||
+             col === "startPoint" || col === "theme") {
+      rowValues.push(pickProfileField(col));
+    }
     else if (col === "updatedAt") rowValues.push(now);
     else if (col === "role") rowValues.push(existingRole);
     else if (col === "chatAllowed") rowValues.push(existingChatAllowed);
@@ -804,8 +1043,13 @@ function handleSaveProfile(payload) {
   } else {
     sheet.appendRow(rowValues);
   }
+  invalidateProfilesCache();
 
-  return { ok: true, status: "saved" };
+  var savedObj = {};
+  for (var idx = 0; idx < headers.length; idx++) {
+    savedObj[headers[idx]] = rowValues[idx];
+  }
+  return { ok: true, status: "saved", profile: buildUserProfileObject(savedObj, phone) };
 }
 
 function handleSaveMonth(payload) {
@@ -893,13 +1137,19 @@ function handleSaveAddresses(payload) {
     }
   }
 
-  // Добавляем обновлённый список
+  // Добавляем обновлённый список пакетно через setValues
+  var newRows = [];
   for (var a = 0; a < addresses.length; a++) {
     var addrItem = addresses[a];
     if (addrItem && addrItem.address) {
-      sheet.appendRow([phone, String(addrItem.address).trim(), String(addrItem.note || "").trim(), now]);
+      newRows.push([phone, String(addrItem.address).trim(), String(addrItem.note || "").trim(), now]);
     }
   }
+  if (newRows.length > 0) {
+    var startRow = Math.max(2, sheet.getLastRow() + 1);
+    sheet.getRange(startRow, 1, newRows.length, 4).setValues(newRows);
+  }
+  gasCacheRemove(GAS_CACHE_ADDR_PREFIX + phone);
 
   return { ok: true, status: "saved", count: addresses.length };
 }
@@ -928,16 +1178,23 @@ function handleSaveDistance(payload) {
     } else {
       sheet.appendRow([f, t, km, now]);
     }
+    gasCacheRemove(GAS_CACHE_DIST_KEY);
     return { ok: true, status: "saved" };
   }
 
   if (payload.entries && typeof payload.entries === "object") {
     var entries = payload.entries;
+    var distRows = [];
     for (var k in entries) {
       var parts = k.split("|||");
       if (parts.length === 2) {
-        sheet.appendRow([parts[0], parts[1], Number(entries[k]) || 0, now]);
+        distRows.push([parts[0], parts[1], Number(entries[k]) || 0, now]);
       }
+    }
+    if (distRows.length > 0) {
+      var dStartRow = Math.max(2, sheet.getLastRow() + 1);
+      sheet.getRange(dStartRow, 1, distRows.length, 4).setValues(distRows);
+      gasCacheRemove(GAS_CACHE_DIST_KEY);
     }
     return { ok: true, status: "saved" };
   }
@@ -1061,6 +1318,7 @@ function handleSkladSave(payload) {
   } else {
     sheet.appendRow(rowValues);
   }
+  gasCacheRemove(GAS_CACHE_SKLAD_PREFIX + phone);
 
   if (newOrder && newOrder.items && newOrder.items.length > 0) {
     var ordersSheet = getOrCreateSheet("Все заказы");
@@ -1096,6 +1354,12 @@ function handleSkladLoad(payload) {
     return { ok: false, status: "wrong_pin", error: "wrong_pin" };
   }
 
+  var skladCacheKey = GAS_CACHE_SKLAD_PREFIX + phone;
+  var cachedSklad = gasCacheGet(skladCacheKey);
+  if (cachedSklad && cachedSklad.ok) {
+    return cachedSklad;
+  }
+
   var sheet = getOrCreateSheet("Пользователи_Склад");
   var list = sheetToObjects(sheet);
 
@@ -1112,11 +1376,15 @@ function handleSkladLoad(payload) {
           parsed = null;
         }
       }
-      return { ok: true, status: "ok", payload: parsed };
+      var foundRes = { ok: true, status: "ok", payload: parsed };
+      gasCachePut(skladCacheKey, foundRes, 180);
+      return foundRes;
     }
   }
 
-  return { ok: true, status: "not_found", payload: null };
+  var emptyRes = { ok: true, status: "not_found", payload: null };
+  gasCachePut(skladCacheKey, emptyRes, 180);
+  return emptyRes;
 }
 
 /* =========================================================================
@@ -1127,14 +1395,18 @@ function handleAdminUsersList(payload) {
   var check = verifyAdminAccess(payload);
   if (!check.ok) return check;
 
-  var sheet = getOrCreateSheet("Профили");
-  var list = sheetToObjects(sheet);
+  var list = getCachedProfilesRows(false);
+  var lastSeenMap = getLastSeenMap();
   var nowMs = Date.now();
   var users = list.map(function(r) {
     var p = normalizePhone(r.userId);
-    var lastSeenAtStr = r.lastSeenAt ? String(r.lastSeenAt) : "";
-    var lastSeenMs = parseIsoTimeMs(r.lastSeenAt);
-    var isOnline = lastSeenMs > 0 && (nowMs - lastSeenMs) <= 3 * 60 * 1000;
+    var tableSeenStr = r.lastSeenAt ? String(r.lastSeenAt) : "";
+    var cacheSeenStr = lastSeenMap[p] ? String(lastSeenMap[p]) : "";
+    var tableSeenMs = parseIsoTimeMs(tableSeenStr);
+    var cacheSeenMs = parseIsoTimeMs(cacheSeenStr);
+    var bestSeenMs = Math.max(tableSeenMs, cacheSeenMs);
+    var lastSeenAtStr = cacheSeenMs > tableSeenMs ? cacheSeenStr : tableSeenStr;
+    var isOnline = bestSeenMs > 0 && (nowMs - bestSeenMs) <= 3 * 60 * 1000;
     return {
       phone: p,
       userId: p,
@@ -1349,6 +1621,7 @@ function handleAdminUserUpdate(payload) {
   }
 
   sheet.getRange(foundRow._rowIndex, 1, 1, headers.length).setValues([rowValues]);
+  invalidateProfilesCache();
   return {
     ok: true,
     updated: true,
@@ -1400,6 +1673,9 @@ function handleAdminUserDelete(payload) {
   if (deletedFromProfiles === 0) {
     return { ok: false, error: "Пользователь не найден." };
   }
+  invalidateProfilesCache();
+  gasCacheRemove(GAS_CACHE_SKLAD_PREFIX + targetPhone);
+  gasCacheRemove(GAS_CACHE_ADDR_PREFIX + targetPhone);
 
   var deleteModuleData = payload.deleteModuleData !== false;
   if (deleteModuleData) {
@@ -1432,7 +1708,7 @@ function parseIsoTimeMs(val) {
 
 function updateProfileColumnValue(phone, colName, value) {
   var sheet = getOrCreateSheet("Профили");
-  var list = sheetToObjects(sheet);
+  var list = getCachedProfilesRows(false);
   var headers = SHEET_SCHEMAS["Профили"];
   var colIdx = headers.indexOf(colName);
   if (colIdx < 0) return false;
@@ -1440,6 +1716,7 @@ function updateProfileColumnValue(phone, colName, value) {
   for (var i = 0; i < list.length; i++) {
     if (normalizePhone(list[i].userId) === phone) {
       sheet.getRange(list[i]._rowIndex, colIdx + 1).setValue(value);
+      invalidateProfilesCache();
       return true;
     }
   }
@@ -1447,24 +1724,54 @@ function updateProfileColumnValue(phone, colName, value) {
 }
 
 function getSecurityAlertsList(limitCount) {
-  var sheet = getOrCreateSheet("Алерты_Чат");
-  var rows = sheetToObjects(sheet);
-  var res = [];
-  for (var i = rows.length - 1; i >= 0; i--) {
-    var r = rows[i];
-    if (!r.id && !r.userPhone) continue;
-    res.push({
-      id: String(r.id || ""),
-      userPhone: normalizePhone(r.userPhone),
-      userName: String(r.userName || ""),
-      eventType: String(r.eventType || ""),
-      details: String(r.details || ""),
-      createdAt: String(r.createdAt || ""),
-      seenByAdmin: parseBoolFlag(r.seenByAdmin)
-    });
-    if (limitCount && res.length >= limitCount) break;
+  var cachedAll = gasCacheGet(GAS_CACHE_ALERTS_KEY);
+  var allList;
+  if (Array.isArray(cachedAll)) {
+    allList = cachedAll;
+  } else {
+    var sheet = getOrCreateSheet("Алерты_Чат");
+    var rows = sheetToObjects(sheet);
+    allList = [];
+    for (var i = rows.length - 1; i >= 0; i--) {
+      var r = rows[i];
+      if (!r.id && !r.userPhone) continue;
+      allList.push({
+        id: String(r.id || ""),
+        userPhone: normalizePhone(r.userPhone),
+        userName: String(r.userName || ""),
+        eventType: String(r.eventType || ""),
+        details: String(r.details || ""),
+        createdAt: String(r.createdAt || ""),
+        seenByAdmin: parseBoolFlag(r.seenByAdmin)
+      });
+    }
+    gasCachePut(GAS_CACHE_ALERTS_KEY, allList, 180);
   }
-  return res;
+  return limitCount ? allList.slice(0, limitCount) : allList;
+}
+
+function getCachedPendingPopups() {
+  var cached = gasCacheGet(GAS_CACHE_POPUPS_KEY);
+  if (Array.isArray(cached)) {
+    return cached;
+  }
+  var msgSheet = getOrCreateSheet("Сообщения_Админа");
+  var msgRows = sheetToObjects(msgSheet);
+  var pending = [];
+  for (var i = 0; i < msgRows.length; i++) {
+    var m = msgRows[i];
+    if (!String(m.readAt || "").trim() && m.id) {
+      pending.push({
+        id: String(m.id || ""),
+        targetPhone: normalizePhone(m.targetPhone),
+        message: String(m.message || ""),
+        senderPhone: normalizePhone(m.senderPhone),
+        createdAt: String(m.createdAt || "")
+      });
+    }
+  }
+  gasCachePut(GAS_CACHE_POPUPS_KEY, pending, 180);
+  return pending;
 }
 
 function handleUserHeartbeat(payload) {
@@ -1480,30 +1787,28 @@ function handleUserHeartbeat(payload) {
   }
 
   var now = new Date().toISOString();
-  updateProfileColumnValue(phone, "lastSeenAt", now);
+  var nowMs = Date.now();
+  // Мгновенно обновляем онлайн-метку в CacheService, а в таблицу пишем не чаще 1 раза в 120 с
+  touchLastSeenInCache(phone, now);
+  var prevTableSeenMs = parseIsoTimeMs(auth.row.lastSeenAt);
+  if (!prevTableSeenMs || (nowMs - prevTableSeenMs) > 120000) {
+    updateProfileColumnValue(phone, "lastSeenAt", now);
+  }
 
   var userIsAdmin = isRowAdmin(auth.row, phone);
   var userChatAllowed = isRowChatAllowed(auth.row, phone);
   var chatWelcomePending = parseBoolFlag(auth.row.chatWelcomePending);
 
-  // Непрочитанные всплывающие сообщения от администратора для этого пользователя
-  var msgSheet = getOrCreateSheet("Сообщения_Админа");
-  var msgRows = sheetToObjects(msgSheet);
+  // Непрочитанные всплывающие сообщения от администратора (из кэша)
+  var allPendingPopups = getCachedPendingPopups();
   var popups = [];
-  for (var i = 0; i < msgRows.length; i++) {
-    var m = msgRows[i];
-    if (normalizePhone(m.targetPhone) === phone && !String(m.readAt || "").trim()) {
-      popups.push({
-        id: String(m.id || ""),
-        targetPhone: phone,
-        message: String(m.message || ""),
-        senderPhone: normalizePhone(m.senderPhone),
-        createdAt: String(m.createdAt || "")
-      });
+  for (var i = 0; i < allPendingPopups.length; i++) {
+    if (allPendingPopups[i].targetPhone === phone) {
+      popups.push(allPendingPopups[i]);
     }
   }
 
-  // Непросмотренные алерты безопасности для администратора
+  // Непросмотренные алерты безопасности для администратора (из кэша)
   var unseenAlerts = [];
   if (userIsAdmin) {
     var allAlerts = getSecurityAlertsList(100);
@@ -1514,7 +1819,7 @@ function handleUserHeartbeat(payload) {
     }
   }
 
-  return {
+  var resp = {
     ok: true,
     phone: phone,
     role: userIsAdmin ? "admin" : "user",
@@ -1522,9 +1827,20 @@ function handleUserHeartbeat(payload) {
     chatAllowed: userChatAllowed,
     chatWelcomePending: chatWelcomePending,
     lastSeenAt: now,
+    profile: buildUserProfileObject(auth.row, phone),
     popups: popups,
     alerts: unseenAlerts
   };
+
+  // При старте хаба отдаём сообщения чата и адреса в том же запросе, чтобы не слать лишних запросов
+  if (payload.includeChat && userChatAllowed) {
+    resp.messages = getCachedRecentChatMessages();
+  }
+  if (payload.includeAddresses || payload.includeChat) {
+    resp.addresses = getUserAddressesList(phone);
+  }
+
+  return resp;
 }
 
 function handleUserAckChatWelcome(payload) {
@@ -1572,6 +1888,7 @@ function handleAdminSendPopup(payload) {
     else rowValues.push("");
   }
   sheet.appendRow(rowValues);
+  gasCacheRemove(GAS_CACHE_POPUPS_KEY);
   return { ok: true, id: id, targetPhone: targetPhone, createdAt: now };
 }
 
@@ -1597,7 +1914,8 @@ function handleUserMarkPopupRead(payload) {
   for (var i = 0; i < rows.length; i++) {
     if (String(rows[i].id || "") === popupId && normalizePhone(rows[i].targetPhone) === phone) {
       if (readColIdx > 0) {
-        sheet.getRange(rows[i]._rowIndex, readColIdx).setValue(now);
+        sheet.getRange(rows[i]._rowIndex, readColIdx, 1, 1).setValues([[now]]);
+        gasCacheRemove(GAS_CACHE_POPUPS_KEY);
       }
       return { ok: true, id: popupId, readAt: now };
     }
@@ -1638,6 +1956,7 @@ function handleLogChatSecurityAlert(payload) {
     else rowValues.push("");
   }
   sheet.appendRow(rowValues);
+  gasCacheRemove(GAS_CACHE_ALERTS_KEY);
   return { ok: true, id: id, createdAt: now };
 }
 
@@ -1647,19 +1966,30 @@ function handleAdminMarkAlertsSeen(payload) {
 
   var alertIds = Array.isArray(payload.alertIds) ? payload.alertIds.map(function (x) { return String(x); }) : null;
   var sheet = getOrCreateSheet("Алерты_Чат");
-  var rows = sheetToObjects(sheet);
+  var lastRow = sheet.getLastRow();
   var headers = SHEET_SCHEMAS["Алерты_Чат"];
+  var idColIdx = headers.indexOf("id") + 1;
   var seenColIdx = headers.indexOf("seenByAdmin") + 1;
   var marked = 0;
 
-  if (seenColIdx > 0) {
-    for (var i = 0; i < rows.length; i++) {
-      var rId = String(rows[i].id || "");
+  if (lastRow >= 2 && idColIdx > 0 && seenColIdx > 0) {
+    var numRows = lastRow - 1;
+    var idValues = sheet.getRange(2, idColIdx, numRows, 1).getValues();
+    var seenValues = sheet.getRange(2, seenColIdx, numRows, 1).getValues();
+    var changed = false;
+
+    for (var i = 0; i < numRows; i++) {
+      var rId = String(idValues[i][0] || "");
       var isMatch = !alertIds || alertIds.length === 0 || alertIds.indexOf(rId) !== -1;
-      if (isMatch && !parseBoolFlag(rows[i].seenByAdmin)) {
-        sheet.getRange(rows[i]._rowIndex, seenColIdx).setValue("true");
+      if (isMatch && !parseBoolFlag(seenValues[i][0])) {
+        seenValues[i][0] = "true";
         marked++;
+        changed = true;
       }
+    }
+    if (changed) {
+      sheet.getRange(2, seenColIdx, numRows, 1).setValues(seenValues);
+      gasCacheRemove(GAS_CACHE_ALERTS_KEY);
     }
   }
   return { ok: true, marked: marked };
