@@ -14456,42 +14456,51 @@
             return;
           }
           segments.push(encodeURIComponent(customStart.trim()));
-        } else if (startType === 'current') {
-          // Пустой сегмент для текущего местоположения
+        } else if (startType === 'current' && validPoints.length === 1) {
+          // Формат ~lat,lon для маршрута от текущего местоположения до одной точки
           segments.push('');
         }
-        // Если startType === 'none', массив строится строго от первой точки
+        // Если startType === 'none' или точек несколько — строим без лишней начальной тильды
 
         const formatPointSegment = (p) => {
-          if (p && p.lat !== undefined && p.lon !== undefined && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lon))) {
-            return `${Number(p.lat)},${Number(p.lon)}`;
+          if (p && p.lat !== undefined && p.lat !== null && p.lat !== '' &&
+              p.lon !== undefined && p.lon !== null && p.lon !== '') {
+            const lat = Number(p.lat);
+            const lon = Number(p.lon);
+            if (Number.isFinite(lat) && Number.isFinite(lon) && !(lat === 0 && lon === 0)) {
+              return `${lat},${lon}`;
+            }
           }
-          if (p && Array.isArray(p.coords) && p.coords.length === 2 && Number.isFinite(Number(p.coords[0])) && Number.isFinite(Number(p.coords[1]))) {
-            return `${Number(p.coords[0])},${Number(p.coords[1])}`;
+          if (p && Array.isArray(p.coords) && p.coords.length === 2 &&
+              p.coords[0] !== null && p.coords[0] !== '' &&
+              p.coords[1] !== null && p.coords[1] !== '') {
+            const lat = Number(p.coords[0]);
+            const lon = Number(p.coords[1]);
+            if (Number.isFinite(lat) && Number.isFinite(lon) && !(lat === 0 && lon === 0)) {
+              return `${lat},${lon}`;
+            }
           }
           return encodeURIComponent(String((p && p.address) || '').trim());
         };
 
-        // 2. Промежуточные точки (приоритет координат lat,lon, иначе адрес)
+        // 2. Промежуточные точки (строго lat,lon или encodeURIComponent(address))
         validPoints.forEach(p => {
-          segments.push(formatPointSegment(p));
+          const seg = formatPointSegment(p);
+          if (seg) segments.push(seg);
         });
 
-        // 3. Возврат в точку старта (только если не 'none')
-        if (returnToStart && startType !== 'none') {
-          if (startType === 'custom') {
-            segments.push(encodeURIComponent(customStart.trim()));
-          } else if (startType === 'current') {
-            segments.push('');
-          }
+        // 3. Возврат в точку старта (только для custom, без висящей тильды для current)
+        if (returnToStart && startType === 'custom' && customStart.trim()) {
+          segments.push(encodeURIComponent(customStart.trim()));
         }
 
-        const rtextValue = segments.join('~');
-        const routeQuery = `mode=routes&rtt=auto&rtext=${rtextValue}`;
+        const pointsStr = segments.join('~');
+        const routeQuery = `rtext=${pointsStr}&rtt=auto`;
         const webUrl = `https://yandex.ru/maps/?${routeQuery}`;
         const yandexMapsAppUrl = `yandexmaps://maps.yandex.ru/?${routeQuery}`;
 
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        console.log('[YandexRouteURL]', isIOS ? yandexMapsAppUrl : webUrl);
 
         if (isIOS) {
           // На iOS открываем напрямую приложение Яндекс Карт, чтобы Яндекс Навигатор не перехватывал ссылку
