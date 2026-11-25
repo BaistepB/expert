@@ -59,6 +59,13 @@ function normalizePin(pin) {
   return String(pin || "").replace(/\D/g, "").slice(0, 4);
 }
 
+function normalizeYearMonth(val) {
+  if (val instanceof Date || Object.prototype.toString.call(val) === "[object Date]") {
+    return Utilities.formatDate(val, Session.getScriptTimeZone(), "yyyy-MM");
+  }
+  return String(val || "").replace(/^'/, "").trim();
+}
+
 function cleanAddressKey(addr) {
   return String(addr || "").trim().toLowerCase().replace(/[\s\u00A0.,/\\-]/g, " ");
 }
@@ -186,6 +193,13 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    return ContentService.createTextOutput(JSON.stringify({
+      ok: false,
+      error: "Сервер занят, повторите попытку через секунду."
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
   try {
     var raw = e && e.postData && e.postData.contents ? e.postData.contents : "{}";
     var data = JSON.parse(raw);
@@ -295,6 +309,8 @@ function doPost(e) {
       ok: false,
       error: "Исключение на сервере GAS: " + err.message
     })).setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -632,8 +648,8 @@ function handleLoadUserData(payload) {
 
   for (var m = 0; m < monthsList.length; m++) {
     var mRow = monthsList[m];
-    if (normalizePhone(mRow.userId) === phone && mRow.yearMonth) {
-      var ymKey = String(mRow.yearMonth).trim();
+    var ymKey = normalizeYearMonth(mRow.yearMonth);
+    if (normalizePhone(mRow.userId) === phone && ymKey) {
       var parsedData = null;
       if (mRow.dataJson) {
         try {
@@ -761,7 +777,7 @@ function handleSaveProfile(payload) {
 function handleSaveMonth(payload) {
   var phone = normalizePhone(payload.userId || payload.phone);
   var pin = normalizePin(payload.pin);
-  var yearMonth = String(payload.yearMonth || "").trim();
+  var yearMonth = normalizeYearMonth(payload.yearMonth);
   var monthData = payload.monthData || {};
   var summary = payload.summary || monthData._cloudSummary || {};
 
@@ -788,7 +804,7 @@ function handleSaveMonth(payload) {
 
   var foundRowIndex = -1;
   for (var i = 0; i < list.length; i++) {
-    if (normalizePhone(list[i].userId) === phone && String(list[i].yearMonth).trim() === yearMonth) {
+    if (normalizePhone(list[i].userId) === phone && normalizeYearMonth(list[i].yearMonth) === yearMonth) {
       foundRowIndex = list[i]._rowIndex;
       break;
     }
@@ -799,7 +815,7 @@ function handleSaveMonth(payload) {
   for (var h = 0; h < headers.length; h++) {
     var col = headers[h];
     if (col === "userId") rowValues.push(phone);
-    else if (col === "yearMonth") rowValues.push(yearMonth);
+    else if (col === "yearMonth") rowValues.push("'" + yearMonth);
     else if (col === "odometerStart") rowValues.push(odomStart);
     else if (col === "fuelStart") rowValues.push(fuelStart);
     else if (col === "odometerEnd") rowValues.push(odomEnd);
@@ -1152,7 +1168,7 @@ function handleAdminUserDetails(payload) {
   for (var m = 0; m < monthsList.length; m++) {
     if (normalizePhone(monthsList[m].userId) === targetPhone) {
       monthsSummary.push({
-        yearMonth: monthsList[m].yearMonth || "",
+        yearMonth: normalizeYearMonth(monthsList[m].yearMonth),
         odometerStart: monthsList[m].odometerStart || 0,
         odometerEnd: monthsList[m].odometerEnd || 0,
         fuelStart: monthsList[m].fuelStart || 0,
