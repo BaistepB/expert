@@ -1686,6 +1686,7 @@
       height: 100%;
       z-index: 9999;
       pointer-events: none;
+      opacity: 0;
     }
 
     /* Стили секретного админ-меню */
@@ -3070,23 +3071,27 @@
             pin: String(creds.pin).replace(/\D/g, "").slice(0, 4)
           });
           const errStr = String((res && res.error) || "").toLowerCase();
-          if (res && res.ok === false) {
+          if (!res || res.ok !== true) {
             if (errStr.includes("неизвестное действие") || errStr.includes("unknown action")) {
               appState.messages = [];
               SafeStorage.set(EXPERT_CONFIG.storageKeys.chatCache, "[]");
               renderChatLists();
               if (typeof window.showSyncToast === "function") {
-                window.showSyncToast("Локальный чат очищен. Для очистки таблицы обновите Code.gs в GAS.");
+                window.showSyncToast("Локальный чат очищен. Для очистки таблицы обновите Code.gs в GAS.", "error");
               }
-              return true;
+              return false;
             }
             if (typeof window.showSyncToast === "function") {
-              window.showSyncToast(res.error || "Не удалось очистить чат", "error");
+              window.showSyncToast((res && res.error) || "Не удалось очистить чат", "error");
             }
             return false;
           }
         } catch (err) {
           console.warn("[/adminclean] Ошибка запроса в GAS:", err);
+          if (typeof window.showSyncToast === "function") {
+            window.showSyncToast("Ошибка связи с GAS при очистке чата: " + (err.message || "проверьте сеть"), "error");
+          }
+          return false;
         }
       }
 
@@ -3094,7 +3099,7 @@
       SafeStorage.set(EXPERT_CONFIG.storageKeys.chatCache, "[]");
       renderChatLists();
       if (typeof window.showSyncToast === "function") {
-        window.showSyncToast("Чат полностью очищен (/adminclean)");
+        window.showSyncToast("Чат и таблица на сервере полностью очищены (/adminclean)");
       }
       return true;
     }
@@ -4525,23 +4530,9 @@
           return intersections >= 2;
         };
 
-        const drawTrail = (pts) => {
+        const drawTrail = () => {
           clearCanvas();
-          if (pts.length < 2) return;
-          ctx.save();
-          ctx.lineCap = "round";
-          ctx.lineJoin = "round";
-          ctx.strokeStyle = "rgba(251, 191, 36, 0.85)";
-          ctx.shadowColor = "rgba(245, 158, 11, 0.9)";
-          ctx.shadowBlur = 10;
-          ctx.lineWidth = 4;
-          ctx.beginPath();
-          ctx.moveTo(pts[0].x, pts[0].y);
-          for (let i = 1; i < pts.length; i++) {
-            ctx.lineTo(pts[i].x, pts[i].y);
-          }
-          ctx.stroke();
-          ctx.restore();
+          return;
         };
 
         const canStartGesture = (target) => {
@@ -4561,6 +4552,7 @@
           if (adminModal && adminModal.classList.contains("open")) return;
           if (!canStartGesture(e.target)) return;
           if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
+          clearCanvas();
           isDrawing = true;
           activePointerId = e.pointerId;
           points = [{ x: e.clientX, y: e.clientY }];
@@ -4572,9 +4564,6 @@
           if (!prev || Math.hypot(e.clientX - prev.x, e.clientY - prev.y) >= 6) {
             points.push({ x: e.clientX, y: e.clientY });
           }
-          if (points.length >= 5) {
-            drawTrail(points);
-          }
         }, { passive: true });
 
         const finishGesture = (e) => {
@@ -4583,7 +4572,7 @@
           activePointerId = null;
           const captured = points.slice();
           points = [];
-          fadeTimer = setTimeout(clearCanvas, 260);
+          clearCanvas();
           if (isFivePointStarGesture(captured)) {
             openAdminModal();
           }
@@ -14498,6 +14487,7 @@
         };
       }, []);
 
+      const [routesCloudStatus, setRoutesCloudStatus] = useState('idle'); // 'idle' | 'syncing' | 'saved' | 'error'
       const routesGasModeRef = useRef('auto'); // 'auto' | 'native' | 'fallback' | 'unsupported'
       const isRoutesHydratingRef = useRef(false);
       const hasMountedRoutesRef = useRef(false);
@@ -14506,9 +14496,24 @@
       const lastCloudSyncedAtRef = useRef(0);
       const localRoutesUpdatedAtRef = useRef((() => {
         try {
-          return Number(localStorage.getItem('expert_route_cloud_updated_at') || 0) || 0;
+          const raw = localStorage.getItem('expert_route_cloud_updated_at');
+          if (!raw) return 0;
+          if (/^\d+$/.test(raw.trim())) return Number(raw.trim()) || 0;
+          return Date.parse(raw) || 0;
         } catch (e) { return 0; }
       })());
+
+      const parseTimestampMs = (val) => {
+        if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+        if (typeof val === 'string') {
+          const trimmed = val.trim();
+          if (!trimmed) return 0;
+          if (/^\d+$/.test(trimmed)) return Number(trimmed) || 0;
+          const parsed = Date.parse(trimmed);
+          return Number.isFinite(parsed) ? parsed : 0;
+        }
+        return 0;
+      };
 
       const getRoutesAuth = () => {
         const u = window.__EXPERT_USER__ || hubSession || (() => {
@@ -14535,8 +14540,8 @@
             merged[dateKey] = cloudEntry;
             return;
           }
-          const cloudTs = Number(cloudEntry.updatedAt || cloudEntry.savedAt || 0) || 0;
-          const localTs = Number(localEntry.updatedAt || localEntry.savedAt || 0) || 0;
+          const cloudTs = parseTimestampMs(cloudEntry.updatedAt || cloudEntry.savedAt || 0);
+          const localTs = parseTimestampMs(localEntry.updatedAt || localEntry.savedAt || 0);
           if (cloudTs > localTs) {
             merged[dateKey] = cloudEntry;
           } else if (cloudTs === localTs) {
@@ -14552,7 +14557,7 @@
 
       const applyCloudRoutesState = (cloudState) => {
         if (!cloudState || typeof cloudState !== 'object') return false;
-        const cloudUpdatedAt = Number(cloudState.updatedAt) || 0;
+        const cloudUpdatedAt = parseTimestampMs(cloudState.updatedAt);
         const localUpdatedAt = localRoutesUpdatedAtRef.current || 0;
         const localIsEmpty = (!Array.isArray(expertPoints) || expertPoints.length === 0);
         const cloudHasPoints = Array.isArray(cloudState.expertPoints) && cloudState.expertPoints.length > 0;
@@ -14568,6 +14573,9 @@
             if (cloudState.appRole === 'expert' || cloudState.appRole === 'dispatcher') {
               setAppRole(cloudState.appRole);
               appRoleRef.current = cloudState.appRole;
+            }
+            if (cloudState.routeDate) {
+              setRouteDate(cloudState.routeDate);
             }
             if (Array.isArray(cloudState.expertPoints)) {
               setExpertPoints(cloudState.expertPoints);
@@ -14586,10 +14594,11 @@
               setSourceMode(cloudState.sourceMode);
               sourceModeRef.current = cloudState.sourceMode;
             }
-            const syncTs = cloudUpdatedAt || Date.now();
-            localRoutesUpdatedAtRef.current = syncTs;
-            lastCloudSyncedAtRef.current = syncTs;
-            try { localStorage.setItem('expert_route_cloud_updated_at', String(syncTs)); } catch (e) {}
+            if (cloudUpdatedAt > 0) {
+              localRoutesUpdatedAtRef.current = cloudUpdatedAt;
+              lastCloudSyncedAtRef.current = cloudUpdatedAt;
+              try { localStorage.setItem('expert_route_cloud_updated_at', String(cloudUpdatedAt)); } catch (e) {}
+            }
           }
         } finally {
           setTimeout(() => {
@@ -14603,6 +14612,8 @@
         const { phone, pin, gasUrl } = getRoutesAuth();
         if (!phone || phone.length !== 11 || !pin || pin.length !== 4 || !gasUrl) return false;
         if (routesGasModeRef.current === 'unsupported') return false;
+
+        if (!silent) setRoutesCloudStatus('syncing');
 
         const postGas = async (bodyObj) => {
           const res = await fetch(gasUrl, {
@@ -14637,6 +14648,7 @@
             const fbRes = await postGas({ action: 'loadUserData', userId: phone, pin });
             if (isUnknownAction(fbRes)) {
               routesGasModeRef.current = 'unsupported';
+              setRoutesCloudStatus('error');
               console.warn('[RoutesCloud] Сервер GAS ещё не обновлён под синхронизацию маршрутов (обновите Code.gs в Google Apps Script).');
               return false;
             }
@@ -14652,24 +14664,28 @@
 
           if (cloudState) {
             const applied = applyCloudRoutesState(cloudState);
+            setRoutesCloudStatus('saved');
             if (applied && !silent) {
               setSaveToast('Маршруты обновлены из облака ☁️');
               setTimeout(() => setSaveToast(''), 2500);
             }
             return true;
           }
+          setRoutesCloudStatus('saved');
         } catch (err) {
+          setRoutesCloudStatus('error');
           console.warn('[RoutesCloud] Ошибка загрузки маршрутов:', err);
         }
         return false;
       };
 
-      const saveRoutesToCloud = async (force = false) => {
+      const saveRoutesToCloud = async (force = false, { keepalive = false } = {}) => {
         const { phone, pin, gasUrl } = getRoutesAuth();
         if (!phone || phone.length !== 11 || !pin || pin.length !== 4 || !gasUrl) return false;
         if (!force && !routesDirtyRef.current) return true;
         if (routesGasModeRef.current === 'unsupported') return { ok: false, serverNeedsUpdate: true };
 
+        setRoutesCloudStatus('syncing');
         const nowTs = localRoutesUpdatedAtRef.current || Date.now();
         localRoutesUpdatedAtRef.current = nowTs;
         try { localStorage.setItem('expert_route_cloud_updated_at', String(nowTs)); } catch (e) {}
@@ -14678,6 +14694,7 @@
           version: 2,
           updatedAt: nowTs,
           appRole: appRoleRef.current,
+          routeDate,
           expertPoints,
           dispatcherExperts,
           activeExpertId: activeExpertIdRef.current,
@@ -14689,11 +14706,16 @@
         };
 
         const postGas = async (bodyObj) => {
-          const res = await fetch(gasUrl, {
+          const bodyStr = JSON.stringify(bodyObj);
+          const fetchOpts = {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(bodyObj)
-          });
+            body: bodyStr
+          };
+          if (keepalive && bodyStr.length < 60000) {
+            fetchOpts.keepalive = true;
+          }
+          const res = await fetch(gasUrl, fetchOpts);
           if (!res.ok) throw new Error('HTTP ' + res.status);
           return await res.json();
         };
@@ -14703,48 +14725,78 @@
           return resp && resp.ok === false && (msg.includes('неизвестное действие') || msg.includes('unknown action'));
         };
 
-        let data = null;
-        if (routesGasModeRef.current !== 'fallback') {
-          data = await postGas({
-            action: 'routesSave',
-            userId: phone,
-            pin,
-            state: statePayload
-          });
-          if (isUnknownAction(data)) {
-            routesGasModeRef.current = 'fallback';
-          } else {
-            routesGasModeRef.current = 'native';
+        try {
+          let data = null;
+          if (routesGasModeRef.current !== 'fallback') {
+            data = await postGas({
+              action: 'routesSave',
+              userId: phone,
+              pin,
+              state: statePayload
+            });
+            if (isUnknownAction(data)) {
+              routesGasModeRef.current = 'fallback';
+            } else {
+              routesGasModeRef.current = 'native';
+            }
           }
-        }
 
-        if (routesGasModeRef.current === 'fallback') {
-          data = await postGas({
-            action: 'saveMonth',
-            userId: phone,
-            pin,
-            yearMonth: '__routes_state__',
-            monthData: statePayload,
-            summary: { updatedAt: nowTs }
-          });
-          if (isUnknownAction(data)) {
-            routesGasModeRef.current = 'unsupported';
-            console.warn('[RoutesCloud] На сервере GAS отсутствует routesSave (обновите Code.gs).');
-            return { ok: false, serverNeedsUpdate: true };
+          if (routesGasModeRef.current === 'fallback') {
+            data = await postGas({
+              action: 'saveMonth',
+              userId: phone,
+              pin,
+              yearMonth: '__routes_state__',
+              monthData: statePayload,
+              summary: { updatedAt: nowTs }
+            });
+            if (isUnknownAction(data)) {
+              routesGasModeRef.current = 'unsupported';
+              setRoutesCloudStatus('error');
+              console.warn('[RoutesCloud] На сервере GAS отсутствует routesSave (обновите Code.gs).');
+              return { ok: false, serverNeedsUpdate: true };
+            }
           }
-        }
 
-        if (data && data.ok === false && data.error) {
-          throw new Error(data.error);
-        }
+          if (data && data.ok === false && data.error) {
+            throw new Error(data.error);
+          }
 
-        routesDirtyRef.current = false;
-        lastCloudSyncedAtRef.current = nowTs;
-        return true;
+          routesDirtyRef.current = false;
+          lastCloudSyncedAtRef.current = nowTs;
+          setRoutesCloudStatus('saved');
+          return true;
+        } catch (err) {
+          setRoutesCloudStatus('error');
+          throw err;
+        }
       };
 
       const loadRoutesRef = useRef(null);
       loadRoutesRef.current = loadRoutesFromCloud;
+      const saveRoutesRef = useRef(null);
+      saveRoutesRef.current = saveRoutesToCloud;
+
+      const handleManualCloudSync = async () => {
+        setRoutesCloudStatus('syncing');
+        try {
+          if (routesDebounceRef.current) {
+            clearTimeout(routesDebounceRef.current);
+            routesDebounceRef.current = null;
+          }
+          if (routesDirtyRef.current || localRoutesUpdatedAtRef.current > lastCloudSyncedAtRef.current) {
+            await saveRoutesToCloud(true);
+          }
+          await loadRoutesFromCloud({ silent: true });
+          setRoutesCloudStatus('saved');
+          setSaveToast('Синхронизировано ☁️');
+          setTimeout(() => setSaveToast(''), 2500);
+        } catch (err) {
+          setRoutesCloudStatus('error');
+          setSaveToast('Ошибка синхронизации с облаком');
+          setTimeout(() => setSaveToast(''), 2500);
+        }
+      };
 
       useEffect(() => {
         if (hubSession && hubSession.phone && hubSession.pin) {
@@ -14758,18 +14810,42 @@
             loadRoutesRef.current({ silent: false });
           }
         };
+        const flushOnHide = () => {
+          if (routesDebounceRef.current) {
+            clearTimeout(routesDebounceRef.current);
+            routesDebounceRef.current = null;
+          }
+          if (routesDirtyRef.current && saveRoutesRef.current) {
+            saveRoutesRef.current(true, { keepalive: true }).catch(() => {});
+          }
+        };
         const onVisibility = () => {
-          if (document.visibilityState === 'visible' && loadRoutesRef.current) {
+          if (document.visibilityState === 'hidden') {
+            flushOnHide();
+            return;
+          }
+          if (document.visibilityState === 'visible' && loadRoutesRef.current && !routesDirtyRef.current) {
             const modContainer = document.getElementById('moduleContainer-routes');
             if (modContainer && modContainer.style.display !== 'none') {
               loadRoutesRef.current({ silent: true });
             }
           }
         };
+        const pollTimer = setInterval(() => {
+          if (document.visibilityState !== 'visible' || routesDirtyRef.current) return;
+          const modContainer = document.getElementById('moduleContainer-routes');
+          if (modContainer && modContainer.style.display !== 'none' && loadRoutesRef.current) {
+            loadRoutesRef.current({ silent: true });
+          }
+        }, 15000);
+
         window.addEventListener('expert:module_opened', onModuleOpened);
+        window.addEventListener('pagehide', flushOnHide);
         document.addEventListener('visibilitychange', onVisibility);
         return () => {
+          clearInterval(pollTimer);
           window.removeEventListener('expert:module_opened', onModuleOpened);
+          window.removeEventListener('pagehide', flushOnHide);
           document.removeEventListener('visibilitychange', onVisibility);
         };
       }, []);
@@ -14796,7 +14872,7 @@
         return () => {
           if (routesDebounceRef.current) clearTimeout(routesDebounceRef.current);
         };
-      }, [appRole, expertPoints, dispatcherExperts, activeExpertId, startType, customStart, returnToStart, sourceMode, routeHistory]);
+      }, [appRole, routeDate, expertPoints, dispatcherExperts, activeExpertId, startType, customStart, returnToStart, sourceMode, routeHistory]);
 
       routesSyncRef.current = async () => {
         if (routesDebounceRef.current) {
@@ -14806,7 +14882,7 @@
         if (!routesDirtyRef.current && localRoutesUpdatedAtRef.current <= lastCloudSyncedAtRef.current) {
           return;
         }
-        return await saveRoutesToCloud(true);
+        return await saveRoutesToCloud(true, { keepalive: true });
       };
 
       return (
@@ -15520,6 +15596,20 @@
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  id="btnRoutesCloudSync"
+                  onClick={handleManualCloudSync}
+                  disabled={routesCloudStatus === 'syncing'}
+                  className="min-h-[44px] px-2.5 sm:px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all flex-shrink-0 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white border border-white/20 shadow-sm text-xs font-semibold disabled:opacity-70"
+                  title="Синхронизировать маршруты с облаком"
+                  aria-label="Синхронизировать с облаком"
+                >
+                  <span className={routesCloudStatus === 'syncing' ? 'inline-block animate-spin' : ''}>🔄</span>
+                  <span className="hidden sm:inline">
+                    {routesCloudStatus === 'syncing' ? 'Облако...' : routesCloudStatus === 'error' ? 'Облако !' : 'Облако ✓'}
+                  </span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setShowSettings(true)}
@@ -17108,7 +17198,11 @@
             }, []);
 
             const changeSkladTheme = (nextTheme) => {
-                changeSkladTheme(nextTheme);
+                setTheme(nextTheme);
+                try {
+                    localStorage.setItem('sklad_theme', nextTheme);
+                    localStorage.setItem('expert_app_theme', nextTheme);
+                } catch (e) {}
                 if (typeof window.applyHubTheme === 'function') {
                     window.applyHubTheme(nextTheme);
                 }

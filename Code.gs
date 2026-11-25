@@ -546,7 +546,12 @@ function handleChatClean(payload) {
   var deletedCount = 0;
   if (lastRow > 1) {
     deletedCount = lastRow - 1;
-    sheet.deleteRows(2, deletedCount);
+    try {
+      sheet.deleteRows(2, deletedCount);
+    } catch (e) {
+      var lastCol = Math.max(1, sheet.getLastColumn());
+      sheet.getRange(2, 1, deletedCount, lastCol).clearContent();
+    }
   }
 
   return {
