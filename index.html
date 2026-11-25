@@ -789,6 +789,8 @@
       flex: 1;
       display: flex;
       flex-direction: column;
+      box-sizing: border-box;
+      min-height: 0;
       padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     }
 
@@ -1898,28 +1900,32 @@
         overscroll-behavior-y: none;
         touch-action: none;
       }
-      body {
+      body,
+      body.on-hub {
         position: fixed;
         inset: 0;
         width: 100%;
-        height: var(--app-height, 100dvh);
-        max-height: var(--app-height, 100dvh);
+        height: 100%;
+        max-height: 100%;
         margin: 0;
         padding: 0;
+        box-sizing: border-box;
         overflow: hidden;
         overscroll-behavior: none;
         overscroll-behavior-y: none;
         touch-action: none;
       }
-      .app-shell {
+      .app-shell,
+      body.on-hub .app-shell {
         position: relative;
         width: 100%;
-        height: var(--app-height, 100dvh);
-        max-height: var(--app-height, 100dvh);
+        height: 100%;
+        max-height: 100%;
         min-height: 0;
         margin: 0;
         border: none;
         border-radius: 0;
+        box-sizing: border-box;
         overflow: hidden;
         overscroll-behavior: none;
         touch-action: none;
@@ -1941,21 +1947,23 @@
       }
       .main-content,
       #mainScreen {
-        flex: 1;
+        flex: 1 1 auto;
         min-height: 0;
+        box-sizing: border-box;
         overflow: hidden;
-        padding: 10px 12px 10px 12px;
+        padding: 10px 12px 0 12px;
         gap: 8px;
         overscroll-behavior: none;
         touch-action: none;
       }
       #hubView {
-        flex: 1;
+        flex: 1 1 auto;
         min-height: 0;
+        box-sizing: border-box;
         overflow: hidden;
         overscroll-behavior: none;
         touch-action: none;
-        padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
       }
       .module-view {
         flex: 1;
@@ -1981,12 +1989,18 @@
         touch-action: none;
       }
       .chat-docked,
+      #hubChatContainer.chat-docked,
       #hubChatContainer {
+        flex: 1 1 auto;
+        min-height: 0;
+        margin-top: 8px;
+        margin-bottom: 0;
+        margin-right: 0;
         padding: 8px 10px;
         gap: 6px;
-        margin-top: auto;
-        margin-bottom: 0;
-        flex: 0 0 auto;
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
         touch-action: none;
       }
       #hubChatContainer .chat-header {
@@ -1995,6 +2009,7 @@
         justify-content: space-between;
         gap: 8px;
         flex-wrap: nowrap;
+        flex-shrink: 0;
       }
       #hubChatContainer .chat-header-title {
         font-size: 14px;
@@ -2002,16 +2017,10 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      #hubChatContainer.chat-docked,
-      #hubChatContainer {
-        padding: 7px 10px;
-        gap: 5px;
-        margin-bottom: 0;
-        margin-right: 0;
-      }
       #hubChatContainer .chat-messages {
-        min-height: 44px;
-        max-height: 68px;
+        flex: 1 1 auto;
+        min-height: 70px;
+        max-height: none;
         padding: 6px;
         gap: 4px;
         overflow-y: auto;
@@ -2051,20 +2060,20 @@
         white-space: nowrap;
       }
       .comm-fab-wrap {
-        right: 16px;
-        bottom: calc(170px + env(safe-area-inset-bottom, 0px));
-        width: 56px;
-        height: 56px;
+        right: 14px;
+        bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+        width: 48px;
+        height: 48px;
       }
       body.in-module .comm-fab-wrap {
         bottom: calc(20px + env(safe-area-inset-bottom, 0px));
       }
       .comm-fab-main {
-        width: 56px;
-        height: 56px;
+        width: 48px;
+        height: 48px;
       }
       .comm-arc-menu {
-        transform-origin: calc(100% - 28px) calc(100% - 28px);
+        transform-origin: calc(100% - 24px) calc(100% - 24px);
       }
       .comm-arc-btn {
         width: 40px;
@@ -2967,6 +2976,7 @@
         contactsCache: "expert_hub_contacts_cache_v1",
         profileCache: "expert_hub_profile_cache_v1",
         addressesCache: "expert_hub_addresses_cache_v1",
+        lastSyncedPhone: "expert_hub_last_synced_phone_v1",
         // Жёстко защищённый ключ модуля маршрутов (ЗАПРЕЩЕНО затирать и удалять!)
         protectedRouteHistory: "expert_app_route_history_v1"
       }
@@ -3894,10 +3904,12 @@
       }
     }
 
-    function startHeartbeatLoop() {
+    function startHeartbeatLoop(opts) {
       stopHeartbeatLoop();
       if (!appState.session) return;
-      sendUserHeartbeat(true, { includeChat: isSessionChatAllowed(appState.session), includeAddresses: true });
+      if (!(opts && opts.delayFirst)) {
+        sendUserHeartbeat(true, { includeChat: isSessionChatAllowed(appState.session), includeAddresses: true });
+      }
       heartbeatTimerId = setInterval(() => {
         if (!document.hidden && appState.session) {
           sendUserHeartbeat(false);
@@ -4338,9 +4350,175 @@
     }
 
     /* =========================================================================
+       ПОЛНАЯ СИНХРОНИЗАЦИЯ ЕДИНОГО ОБЛАЧНОГО АККАУНТА (loadFullAccountState)
+       ========================================================================= */
+    let fullAccountSyncInFlight = false;
+    let fullAccountSyncSeq = 0;
+
+    function resetPreviousAccountCaches(newPhone) {
+      // Безопасная точечная очистка кэшей прежнего аккаунта (без полной очистки хранилища)
+      // и БЕЗ удаления защищённого ключа expert_app_route_history_v1
+      const perUserKeysToReset = [
+        "expert_report_profile",
+        "expert_report_months",
+        "expert_report_addresses",
+        "expert_report_open_tabs",
+        "expert_route_expert_points",
+        "expert_route_dispatcher_experts",
+        "expert_route_custom_start",
+        "expert_route_start_settings",
+        "expert_route_start_type",
+        "expert_route_cloud_updated_at",
+        "sklad_favorites",
+        "sklad_custom_items",
+        "sklad_catalog_edits",
+        "sklad_deleted_ids",
+        "sklad_cart",
+        "sklad_order_history",
+        "sklad_order_counter",
+        "sklad_profile",
+        "sklad_auth_verified"
+      ];
+      perUserKeysToReset.forEach((key) => {
+        if (PROTECTED_KEYS.has(key) || key === "expert_app_route_history_v1") return;
+        try { localStorage.removeItem(key); } catch (e) {}
+      });
+      SafeStorage.remove(EXPERT_CONFIG.storageKeys.chatCache);
+      SafeStorage.remove(EXPERT_CONFIG.storageKeys.profileCache);
+      SafeStorage.remove(EXPERT_CONFIG.storageKeys.addressesCache);
+      appState.messages = DEFAULT_MESSAGES.slice();
+      window.__EXPERT_PROFILE__ = null;
+      window.__EXPERT_ADDRESSES__ = null;
+      if (newPhone) {
+        SafeStorage.set(EXPERT_CONFIG.storageKeys.lastSyncedPhone, newPhone);
+      }
+    }
+
+    async function syncFullAccountState(opts) {
+      if (!appState.session || !EXPERT_CONFIG.gasUrl) return null;
+      const phone = normalizePhone11(appState.session.phone);
+      const pin = String(appState.session.pin || "").replace(/\D/g, "").slice(0, 4);
+      if (phone.length !== 11 || pin.length !== 4) return null;
+      if (fullAccountSyncInFlight && !(opts && opts.force)) return window.__EXPERT_ACCOUNT_DATA__ || null;
+
+      fullAccountSyncInFlight = true;
+      const seq = ++fullAccountSyncSeq;
+      const syncBadge = document.getElementById("topbarSyncBadge");
+      if (syncBadge) {
+        syncBadge.textContent = "⏳ Синхронизация аккаунта...";
+        syncBadge.style.display = "inline-flex";
+      }
+
+      try {
+        const res = await apiPost("loadFullAccountState", {
+          phone: phone,
+          pin: pin
+        });
+        if (!res || !res.ok) {
+          if (syncBadge && seq === fullAccountSyncSeq) {
+            syncBadge.style.display = "none";
+          }
+          return null;
+        }
+
+        const prevSyncedPhone = normalizePhone11(SafeStorage.get(EXPERT_CONFIG.storageKeys.lastSyncedPhone) || "");
+        const isAccountSwitch = Boolean(prevSyncedPhone && prevSyncedPhone !== phone) || Boolean(opts && opts.isAccountSwitch);
+        if (prevSyncedPhone !== phone) {
+          if (prevSyncedPhone) {
+            resetPreviousAccountCaches(phone);
+          } else {
+            SafeStorage.set(EXPERT_CONFIG.storageKeys.lastSyncedPhone, phone);
+          }
+        }
+
+        const enriched = { ...res, isAccountSwitch };
+        window.__EXPERT_ACCOUNT_DATA__ = enriched;
+
+        // 1. Права и статус доступа в сессию
+        if (res.profile && typeof res.profile === "object") {
+          let sessChanged = false;
+          if (res.profile.isAdmin !== undefined) {
+            appState.session.isAdmin = Boolean(res.profile.isAdmin);
+            appState.session.role = res.profile.role || (appState.session.isAdmin ? "admin" : "user");
+            sessChanged = true;
+          }
+          if (res.profile.chatAllowed !== undefined) {
+            appState.session.chatAllowed = Boolean(res.profile.chatAllowed);
+            sessChanged = true;
+          }
+          if (res.profile.chatWelcomePending !== undefined) {
+            appState.session.chatWelcomePending = Boolean(res.profile.chatWelcomePending);
+            sessChanged = true;
+          }
+          if (sessChanged) {
+            SafeStorage.set(EXPERT_CONFIG.storageKeys.session, JSON.stringify(appState.session));
+            syncChatAccessUI();
+          }
+        }
+
+        // 2. Профиль, тема и адреса (без повторного saveUserTheme)
+        applySyncedUserData(res.profile || {}, Array.isArray(res.addresses) ? res.addresses : [], {
+          forceReplace: isAccountSwitch || Boolean(opts && opts.forceReplace),
+          syncSession: false
+        });
+
+        // 3. Контакты
+        if (Array.isArray(res.contacts)) {
+          appState.contacts = res.contacts;
+          SafeStorage.set(EXPERT_CONFIG.storageKeys.contactsCache, JSON.stringify(res.contacts));
+          const searchEl = document.getElementById("contactSearchInput");
+          renderContacts(searchEl ? searchEl.value : "");
+        }
+
+        // 4. Чат (если разрешён) и приветствие
+        if (isSessionChatAllowed(appState.session)) {
+          if (Array.isArray(res.chatMessages)) {
+            appState.messages = res.chatMessages;
+            SafeStorage.set(EXPERT_CONFIG.storageKeys.chatCache, JSON.stringify(appState.messages));
+          }
+          if (appState.session.chatWelcomePending) {
+            triggerChatWelcomeIfNeeded(true);
+          }
+          renderChatLists();
+        }
+
+        // 5. Личные уведомления админа и алерты безопасности
+        if (Array.isArray(res.adminPopups) && res.adminPopups.length) {
+          enqueueUserPopups(res.adminPopups);
+        }
+        if (isSessionAdmin(appState.session) && Array.isArray(res.adminAlerts) && res.adminAlerts.length) {
+          enqueueAdminSecurityAlerts(res.adminAlerts);
+        }
+
+        // 6. Единое событие полного снимка для всех 3 модулей
+        window.dispatchEvent(new CustomEvent("expert:full_sync", { detail: enriched }));
+        syncHubSessionToModules();
+
+        if (syncBadge && seq === fullAccountSyncSeq) {
+          syncBadge.textContent = "✓ Синхронизировано";
+          setTimeout(() => {
+            if (seq === fullAccountSyncSeq && syncBadge) {
+              syncBadge.style.display = "none";
+            }
+          }, 1400);
+        }
+        return enriched;
+      } catch (err) {
+        console.warn("[FullSync] Ошибка загрузки снимка аккаунта:", err);
+        if (syncBadge && seq === fullAccountSyncSeq) {
+          syncBadge.style.display = "none";
+        }
+        return null;
+      } finally {
+        fullAccountSyncInFlight = false;
+      }
+    }
+    window.syncFullAccountState = syncFullAccountState;
+
+    /* =========================================================================
        СИНХРОНИЗАЦИЯ ИНТЕРФЕЙСА АВТОРИЗАЦИИ
        ========================================================================= */
-    function syncAuthUI() {
+    function syncAuthUI(authOpts) {
       const isAuthed = Boolean(appState.session);
       const authScreen = document.getElementById("authScreen");
       if (authScreen) authScreen.style.display = isAuthed ? "none" : "grid";
@@ -4362,7 +4540,16 @@
         if (appState.session.chatWelcomePending) {
           triggerChatWelcomeIfNeeded(true);
         }
-        startHeartbeatLoop();
+        const skipFullSync = Boolean(authOpts && authOpts.skipFullSync);
+        if (!skipFullSync) {
+          syncFullAccountState({
+            forceReplace: Boolean(authOpts && authOpts.forceReplace),
+            isAccountSwitch: Boolean(authOpts && authOpts.isAccountSwitch)
+          });
+          startHeartbeatLoop({ delayFirst: true });
+        } else {
+          startHeartbeatLoop();
+        }
       } else {
         stopHeartbeatLoop();
         appState.chatWelcomeVisibleForPhone = null;
@@ -4662,10 +4849,17 @@
                 chatAllowed: res.chatAllowed !== undefined ? Boolean(res.chatAllowed) : (phone11 === PRIMARY_ADMIN_PHONE),
                 chatWelcomePending: Boolean(res.chatWelcomePending)
               };
+              const prevPhone = normalizePhone11(SafeStorage.get(EXPERT_CONFIG.storageKeys.lastSyncedPhone) || "");
+              const switchedUser = Boolean(prevPhone && prevPhone !== phone11);
+              if (switchedUser) {
+                resetPreviousAccountCaches(phone11);
+              } else {
+                SafeStorage.set(EXPERT_CONFIG.storageKeys.lastSyncedPhone, phone11);
+              }
               SafeStorage.set(EXPERT_CONFIG.storageKeys.session, JSON.stringify(appState.session));
               applySyncedUserData(incomingProf, Array.isArray(res.addresses) ? res.addresses : [], { forceReplace: true });
               setStatusBox(statusEl, "", "");
-              syncAuthUI();
+              syncAuthUI({ forceReplace: true, isAccountSwitch: switchedUser });
               syncHubSessionToModules();
               return;
             }
@@ -11897,11 +12091,97 @@
                     }
                 };
 
+                const parseTs = (v) => {
+                    if (!v) return 0;
+                    const n = typeof v === 'number' ? v : Date.parse(String(v));
+                    return isNaN(n) ? 0 : n;
+                };
+
+                const applyFullSnapshot = (snap) => {
+                    if (!snap || !snap.ok) return;
+                    const isSwitch = Boolean(snap.isAccountSwitch);
+                    isHydratingRef.current = true;
+
+                    if (snap.profile && typeof snap.profile === 'object') {
+                        const srvProfTs = parseTs(snap.profile.updatedAt);
+                        let localProfTs = 0;
+                        try {
+                            const lp = JSON.parse(localStorage.getItem('expert_report_profile') || '{}');
+                            localProfTs = parseTs(lp && lp.updatedAt);
+                        } catch (e) {}
+                        if (isSwitch || (!userChangedProfileRef.current && (!localProfTs || srvProfTs >= localProfTs))) {
+                            applyIncomingProfile(snap.profile, null, isSwitch);
+                            userChangedProfileRef.current = false;
+                        }
+                    }
+
+                    if (snap.months && typeof snap.months === 'object') {
+                        const cleanMonths = { ...snap.months };
+                        delete cleanMonths.__routes_state__;
+                        const activeMonthKey = localStorage.getItem('expert_report_current_month') || currentMonthKey;
+                        setMonths(prev => {
+                            const base = isSwitch ? {} : { ...prev };
+                            Object.entries(cleanMonths).forEach(([k, srvM]) => {
+                                if (!/^\d{4}-\d{2}$/.test(k) || !srvM || typeof srvM !== 'object') return;
+                                const localM = base[k];
+                                const localTs = parseTs((localM && (localM.updatedAt || (localM._cloudSummary && localM._cloudSummary.updatedAt))) || 0);
+                                const srvTs = parseTs(srvM.updatedAt || (srvM._cloudSummary && srvM._cloudSummary.updatedAt) || 0);
+                                const isDirtyHere = !isSwitch && userChangedMonthRef.current && k === activeMonthKey;
+                                if (!localM || isSwitch || (!isDirtyHere && (srvTs >= localTs || localTs === 0))) {
+                                    base[k] = srvM;
+                                }
+                            });
+                            try { localStorage.setItem('expert_report_months', JSON.stringify(base)); } catch (e) {}
+                            return base;
+                        });
+                        setOpenMonthKeys(prevKeys => {
+                            const set = new Set(isSwitch ? [currentMonthKey] : prevKeys);
+                            Object.entries(cleanMonths).forEach(([k, m]) => {
+                                if (!/^\d{4}-\d{2}$/.test(k)) return;
+                                const hasOdo = Number(m?.odometerStart) > 0;
+                                const hasRefuels = Array.isArray(m?.refuels) && m.refuels.length > 0;
+                                const hasWorkdays = m?.workdays && Object.values(m.workdays).some(d => d && (d.isWorkday || (d.trips && d.trips.length > 0) || Number(d.tripKm) > 0));
+                                if (hasOdo || hasRefuels || hasWorkdays) set.add(k);
+                            });
+                            return Array.from(set).sort();
+                        });
+                    }
+
+                    if (Array.isArray(snap.addresses) && (isSwitch || !userChangedAddressesRef.current)) {
+                        const sp = (snap.profile && snap.profile.startPoint) || '';
+                        const nextAddrs = ensureDefaultOfficeAddress(snap.addresses, sp);
+                        setAddresses(nextAddrs);
+                        try { localStorage.setItem('expert_report_addresses', JSON.stringify(nextAddrs)); } catch (e) {}
+                        userChangedAddressesRef.current = false;
+                    }
+
+                    if (snap.distanceCache && typeof snap.distanceCache === 'object') {
+                        setDistanceCache(prev => {
+                            const merged = isSwitch ? { ...snap.distanceCache } : { ...prev, ...snap.distanceCache };
+                            try { localStorage.setItem('expert_report_distance_cache', JSON.stringify(merged)); } catch (e) {}
+                            return merged;
+                        });
+                    }
+
+                    setCloudStatus('saved');
+                    setTimeout(() => { isHydratingRef.current = false; }, 450);
+                };
+
+                const onFullSync = (e) => {
+                    if (e && e.detail) applyFullSnapshot(e.detail);
+                };
+
+                if (window.__EXPERT_ACCOUNT_DATA__) {
+                    applyFullSnapshot(window.__EXPERT_ACCOUNT_DATA__);
+                }
+
                 window.addEventListener('expert:session_changed', onSessionChange);
                 window.addEventListener('expert:profile_synced', onProfileSynced);
+                window.addEventListener('expert:full_sync', onFullSync);
                 return () => {
                     window.removeEventListener('expert:session_changed', onSessionChange);
                     window.removeEventListener('expert:profile_synced', onProfileSynced);
+                    window.removeEventListener('expert:full_sync', onFullSync);
                 };
             }, []);
             const [authError, setAuthError] = useState('');
@@ -14350,11 +14630,33 @@
         if (window.__EXPERT_PROFILE__) {
           syncProfileStartToRoutes(window.__EXPERT_PROFILE__, window.__EXPERT_ADDRESSES__);
         }
+        const applyFullRoutesSnap = (snap) => {
+          if (!snap || !snap.ok) return;
+          if (snap.isAccountSwitch && !snap.routesState) {
+            setExpertPoints([]);
+          }
+          if (snap.routesState && typeof snap.routesState === 'object') {
+            if (typeof applyCloudRoutesState === 'function') {
+              applyCloudRoutesState(snap.routesState);
+            }
+          }
+          if (snap.profile || snap.addresses) {
+            syncProfileStartToRoutes(snap.profile, snap.addresses);
+          }
+        };
+        const onFullSync = (e) => {
+          if (e && e.detail) applyFullRoutesSnap(e.detail);
+        };
+        if (window.__EXPERT_ACCOUNT_DATA__) {
+          setTimeout(() => applyFullRoutesSnap(window.__EXPERT_ACCOUNT_DATA__), 0);
+        }
         window.addEventListener('expert:session_changed', onSessionChanged);
         window.addEventListener('expert:profile_synced', onProfileSynced);
+        window.addEventListener('expert:full_sync', onFullSync);
         return () => {
           window.removeEventListener('expert:session_changed', onSessionChanged);
           window.removeEventListener('expert:profile_synced', onProfileSynced);
+          window.removeEventListener('expert:full_sync', onFullSync);
         };
       }, []);
 
@@ -18792,9 +19094,11 @@
                         customItems,
                         catalogEdits,
                         deletedCatalogIds,
+                        cart,
                         userProfile,
                         orderHistory,
-                        orderCounter
+                        orderCounter,
+                        updatedAt: Date.now()
                     };
                     const data = await skladRequest({
                         mode: 'save',
@@ -18841,9 +19145,9 @@
                     const hasPayloadData = json.payload && typeof json.payload === 'object' && Object.keys(json.payload).length > 0;
                     if (json.status === 'ok' && hasPayloadData) {
                         const d = json.payload;
-                        // Тема синхронизируется с каркасом хаба
                         if (Array.isArray(d.favorites)) setFavorites(d.favorites);
                         if (Array.isArray(d.customItems)) setCustomItems(d.customItems);
+                        if (Array.isArray(d.cart)) setCart(d.cart);
                         if (d.catalogEdits) {
                             const cleanedEdits = { ...d.catalogEdits };
                             ['ТМ-9745', 'ТМ-6663'].forEach(id => delete cleanedEdits[id]);
@@ -18856,11 +19160,12 @@
                                     .map(item => cleanedEdits[item.id] ? { ...item, ...cleanedEdits[item.id] } : item)
                             );
                         }
-                        if (d.userProfile) {
+                        if (d.userProfile || json.fullName || json.address) {
+                            const hubProf = window.__EXPERT_PROFILE__ || {};
                             setUserProfile(prev => ({
-                                name: d.userProfile.name || prev.name,
+                                name: (d.userProfile && d.userProfile.name) || json.fullName || hubProf.fullName || prev.name,
                                 phone: formatPhoneMask(phoneToLoad),
-                                address: d.userProfile.address || prev.address,
+                                address: (d.userProfile && d.userProfile.address) || json.address || hubProf.startPoint || prev.address,
                                 pin: cleanPin
                             }));
                         }
@@ -18965,13 +19270,72 @@
                         address: prev.address || prof.startPoint || ''
                     }));
                 };
+                const applyFullSkladSnap = (snap) => {
+                    if (!snap || !snap.ok) return;
+                    const sState = snap.skladState;
+                    const prof = snap.profile || {};
+                    const cleanPhone = normalizePhone(snap.phone || prof.userId);
+                    const sessPin = (window.__EXPERT_USER__ && window.__EXPERT_USER__.pin) || '';
+                    if (snap.isAccountSwitch && (!sState || !sState.stateJson)) {
+                        setFavorites([]);
+                        setCustomItems([]);
+                        setCatalogEdits({});
+                        setDeletedCatalogIds([]);
+                        setCatalog(initialCatalog);
+                        setCart([]);
+                        setOrderHistory([]);
+                        setOrderCounter(0);
+                    }
+                    if (sState && sState.stateJson && typeof sState.stateJson === 'object') {
+                        const d = sState.stateJson;
+                        if (Array.isArray(d.favorites)) setFavorites(d.favorites);
+                        if (Array.isArray(d.customItems)) setCustomItems(d.customItems);
+                        if (Array.isArray(d.cart)) setCart(d.cart);
+                        if (d.catalogEdits || d.deletedCatalogIds) {
+                            const cleanedEdits = { ...(d.catalogEdits || {}) };
+                            ['ТМ-9745', 'ТМ-6663'].forEach(id => delete cleanedEdits[id]);
+                            setCatalogEdits(cleanedEdits);
+                            const del = Array.isArray(d.deletedCatalogIds) ? d.deletedCatalogIds : [];
+                            setDeletedCatalogIds(del);
+                            setCatalog(
+                                initialCatalog
+                                    .filter(item => !del.includes(item.id))
+                                    .map(item => cleanedEdits[item.id] ? { ...item, ...cleanedEdits[item.id] } : item)
+                            );
+                        }
+                        if (Array.isArray(d.orderHistory)) setOrderHistory(d.orderHistory);
+                        if (typeof d.orderCounter === 'number') setOrderCounter(d.orderCounter);
+                    }
+                    const dProf = (sState && sState.stateJson && sState.stateJson.userProfile) || {};
+                    setUserProfile(prev => ({
+                        name: dProf.name || (sState && sState.fullName) || prof.fullName || (snap.isAccountSwitch ? '' : prev.name),
+                        phone: cleanPhone.length === 11 ? formatPhoneMask(cleanPhone) : prev.phone,
+                        address: dProf.address || (sState && sState.address) || prof.startPoint || (snap.isAccountSwitch ? '' : prev.address),
+                        pin: sessPin || prev.pin
+                    }));
+                    if (cleanPhone.length === 11 && sessPin.length === 4) {
+                        lastCheckedPhoneRef.current = `${cleanPhone}_${sessPin}`;
+                        setIsAuthVerified(true);
+                        setShowAuthModal(false);
+                        localStorage.setItem('sklad_auth_verified', 'true');
+                        warehouseSyncedRef.current = true;
+                    }
+                };
+                const onFullSync = (e) => {
+                    if (e && e.detail) applyFullSkladSnap(e.detail);
+                };
+                if (window.__EXPERT_ACCOUNT_DATA__) {
+                    applyFullSkladSnap(window.__EXPERT_ACCOUNT_DATA__);
+                }
                 window.addEventListener('expert:session_changed', onSessionChanged);
                 window.addEventListener('expert:module_opened', onModuleOpened);
                 window.addEventListener('expert:profile_synced', onProfileSynced);
+                window.addEventListener('expert:full_sync', onFullSync);
                 return () => {
                     window.removeEventListener('expert:session_changed', onSessionChanged);
                     window.removeEventListener('expert:module_opened', onModuleOpened);
                     window.removeEventListener('expert:profile_synced', onProfileSynced);
+                    window.removeEventListener('expert:full_sync', onFullSync);
                 };
             }, []);
 
@@ -19003,7 +19367,7 @@
                     syncToCloud(null, true).catch(() => {});
                 }, 1500);
                 return () => clearTimeout(syncTimer);
-            }, [favorites, customItems, catalogEdits, deletedCatalogIds, orderHistory, userProfile.name, userProfile.address, isAuthVerified]);
+            }, [favorites, customItems, catalogEdits, deletedCatalogIds, cart, orderHistory, userProfile.name, userProfile.address, isAuthVerified]);
 
             const commitOrderToHistory = () => {
                 if (currentOrderSaved || !pendingOrder || !pendingOrder.items || pendingOrder.items.length === 0) return;
