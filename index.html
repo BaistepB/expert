@@ -936,10 +936,11 @@
         margin-bottom: 0;
         flex: 0 1 auto;
         min-height: 0;
-        max-height: 245px;
+        max-height: 250px;
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        box-sizing: border-box;
       }
 
       body.on-hub #hubChatContainer .chat-header,
@@ -949,15 +950,15 @@
 
       body.on-hub #hubChatContainer .chat-messages {
         flex: 1 1 auto;
-        min-height: 76px;
-        max-height: 145px;
+        min-height: 0;
+        max-height: none;
         overflow-y: auto;
         touch-action: pan-y;
       }
 
       body.on-hub .comm-fab-wrap {
         right: 24px;
-        bottom: 272px;
+        bottom: 280px;
       }
 
       body.in-module .comm-fab-wrap {
@@ -4474,17 +4475,20 @@
         chatBox.style.left = "";
         chatBox.style.right = "";
         chatBox.style.top = "";
+        chatBox.style.width = "";
         chatBox.style.height = "";
+        chatBox.style.maxHeight = "";
         chatBox.style.bottom = "";
         chatBox.style.margin = "";
         chatBox.style.zIndex = "";
       };
 
-      const isMobile = window.innerWidth <= 640;
-      const isOnHub = document.body && document.body.classList.contains("on-hub");
+      const isOnHub = document.body
+        && document.body.classList.contains("on-hub")
+        && !document.body.classList.contains("in-module");
       const isChatVisible = chatBox.style.display !== "none" && isSessionChatAllowed(appState.session);
 
-      if (!isMobile || !isOnHub || !isChatVisible) {
+      if (!isOnHub || !isChatVisible) {
         resetInline();
         return;
       }
@@ -4492,24 +4496,47 @@
       const commFabWrap = document.getElementById("commFabWrap");
       const fabRect = commFabWrap ? commFabWrap.getBoundingClientRect() : { height: 0, bottom: 0 };
       const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      const bottomGap = window.innerWidth <= 640 ? 14 : 18;
 
-      chatBox.style.position = "fixed";
-      chatBox.style.left = "12px";
-      chatBox.style.right = "12px";
-      chatBox.style.margin = "0";
-      chatBox.style.zIndex = "20";
+      let chatTop;
+      let chatHeight;
 
       if (!fabRect || fabRect.height === 0) {
-        chatBox.style.top = "";
-        chatBox.style.bottom = "14px";
-        chatBox.style.height = "210px";
+        chatHeight = 200;
+        chatTop = Math.round(vh - chatHeight - bottomGap);
       } else {
-        const chatTop = Math.round(fabRect.bottom + 14);
-        const chatHeight = Math.max(140, Math.round(vh - chatTop - 14));
-        chatBox.style.top = chatTop + "px";
-        chatBox.style.height = chatHeight + "px";
-        chatBox.style.bottom = "auto";
+        chatTop = Math.round(fabRect.bottom + 14);
+        const minChatHeight = 165;
+        if (vh - chatTop - bottomGap < minChatHeight) {
+          const hubGridEl = document.getElementById("hubGrid");
+          const hubGridBottom = hubGridEl ? hubGridEl.getBoundingClientRect().bottom : 0;
+          chatTop = Math.max(Math.round(hubGridBottom + 12), Math.round(vh - minChatHeight - bottomGap));
+        }
+        const maxChatH = window.innerWidth <= 640 ? 240 : 250;
+        chatHeight = Math.max(140, Math.min(maxChatH, Math.round(vh - chatTop - bottomGap)));
       }
+
+      if (window.innerWidth <= 640) {
+        chatBox.style.left = "12px";
+        chatBox.style.right = "12px";
+        chatBox.style.width = "auto";
+      } else {
+        const refEl = document.querySelector(".topbar") || document.getElementById("hubView");
+        if (refEl) {
+          const refRect = refEl.getBoundingClientRect();
+          chatBox.style.left = Math.round(refRect.left) + "px";
+          chatBox.style.width = Math.round(refRect.width) + "px";
+          chatBox.style.right = "auto";
+        }
+      }
+
+      chatBox.style.position = "fixed";
+      chatBox.style.top = chatTop + "px";
+      chatBox.style.height = chatHeight + "px";
+      chatBox.style.maxHeight = chatHeight + "px";
+      chatBox.style.bottom = "auto";
+      chatBox.style.margin = "0";
+      chatBox.style.zIndex = "20";
     }
 
     function schedulePositionHubChat() {
@@ -4763,6 +4790,7 @@
         document.body.classList.remove("in-module");
         closeDrawerChat();
         renderChatLists();
+        schedulePositionHubChat();
       }
     }
 
@@ -6331,6 +6359,7 @@
     window.addEventListener("orientationchange", updateAppHeight);
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", updateAppHeight);
+      window.visualViewport.addEventListener("scroll", updateAppHeight);
     }
 
     function initExpertHub() {
