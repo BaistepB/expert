@@ -1613,6 +1613,22 @@
       bottom: 24px;
     }
 
+    body.chat-keyboard-open .comm-fab-wrap {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      visibility: hidden !important;
+      transform: scale(0.8);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+
+    .chat-time {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
     /* Главная кнопка связи */
     .comm-fab-main {
       width: 62px;
@@ -3332,6 +3348,9 @@
         } catch (err) {}
       }
 
+      if (typeof renderChatLists === "function" && typeof appState !== "undefined" && appState.session) {
+        renderChatLists();
+      }
       window.dispatchEvent(new CustomEvent("expert:theme_changed", { detail: safeTheme }));
     }
 
@@ -3730,6 +3749,84 @@
       }
     }
 
+    function getChatUserColors(userKey, isDarkTheme) {
+      const keyStr = String(userKey || "user").trim().toLowerCase();
+      let hash = 2166136261;
+      for (let i = 0; i < keyStr.length; i++) {
+        hash ^= keyStr.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+      }
+      const lightPalette = [
+        "#1d4ed8", "#047857", "#7c3aed", "#b45309", "#be185d",
+        "#0f766e", "#4338ca", "#c2410c", "#4d7c0f", "#9333ea"
+      ];
+      const darkPalette = [
+        "#60a5fa", "#34d399", "#a78bfa", "#fbbf24", "#f472b6",
+        "#2dd4bf", "#818cf8", "#fb923c", "#a3e635", "#e879f9"
+      ];
+      const palette = isDarkTheme ? darkPalette : lightPalette;
+      const color = palette[Math.abs(hash) % palette.length];
+      const cleanHex = color.replace("#", "");
+      const r = parseInt(cleanHex.slice(0, 2), 16);
+      const g = parseInt(cleanHex.slice(2, 4), 16);
+      const b = parseInt(cleanHex.slice(4, 6), 16);
+      const alpha = isDarkTheme ? 0.14 : 0.09;
+      return {
+        color,
+        softBg: `rgba(${r}, ${g}, ${b}, ${alpha})`
+      };
+    }
+
+    function formatChatMoscowDateTime(msg) {
+      if (!msg) return "";
+      if (msg.createdAt) {
+        const dt = new Date(msg.createdAt);
+        if (!Number.isNaN(dt.getTime()) && dt.getFullYear() >= 2000) {
+          return new Intl.DateTimeFormat("ru-RU", {
+            timeZone: "Europe/Moscow",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+          }).format(dt).replace(",", "");
+        }
+      }
+      let cleanDate = String(msg.date || "").replace(/^'/, "").trim();
+      let cleanTime = String(msg.time || "").replace(/^'/, "").trim();
+      if (/^\d{4}-\d{2}-\d{2}T/.test(cleanDate)) {
+        const dtD = new Date(cleanDate);
+        if (!Number.isNaN(dtD.getTime()) && dtD.getFullYear() >= 2000) {
+          cleanDate = new Intl.DateTimeFormat("ru-RU", {
+            timeZone: "Europe/Moscow",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+          }).format(dtD);
+        } else {
+          cleanDate = "";
+        }
+      } else if (cleanDate.includes("1899-")) {
+        cleanDate = "";
+      }
+      if (/^\d{4}-\d{2}-\d{2}T/.test(cleanTime)) {
+        const dtT = new Date(cleanTime);
+        if (!Number.isNaN(dtT.getTime())) {
+          cleanTime = new Intl.DateTimeFormat("ru-RU", {
+            timeZone: "Europe/Moscow",
+            hour: "2-digit",
+            minute: "2-digit"
+          }).format(dtT);
+        } else {
+          cleanTime = "";
+        }
+      } else if (cleanTime.includes("T") || cleanTime.includes("1899-")) {
+        const mT = cleanTime.match(/(\d{2}:\d{2})/);
+        cleanTime = mT ? mT[1] : "";
+      }
+      return [cleanDate, cleanTime].filter(Boolean).join(" ");
+    }
+
     function renderChatLists() {
       const targets = [
         document.getElementById("hubChatMessages"),
@@ -3745,6 +3842,9 @@
           <div class="chat-text">Добро пожаловать в корпоративный чат! Этот чат предназначен только для экспертов и инженеров. Пожалуйста, соблюдайте конфиденциальность: копирование, печать и создание скриншотов переписки запрещены.</div>
         </article>
       ` : "";
+
+      const currentTheme = document.documentElement.getAttribute("data-theme") || "expert";
+      const isDarkTheme = typeof DARK_THEMES !== "undefined" && DARK_THEMES.has(currentTheme);
 
       targets.forEach((container) => {
         if (!container) return;
@@ -3769,19 +3869,18 @@
         const myPhone = appState.session.phone;
 
         const messagesHtml = appState.messages.map((item) => {
-          const safeDate = escapeSecurityHtml(item.date || "");
-          const safeTime = escapeSecurityHtml(item.time || "");
+          const safeDateTime = escapeSecurityHtml(formatChatMoscowDateTime(item));
           const safeName = escapeSecurityHtml(item.userName || "Сотрудник");
           const safeText = escapeSecurityHtml(item.message || "");
           const isMine = item.userPhone && normalizePhone11(item.userPhone) === normalizePhone11(myPhone);
+          const userKey = item.userPhone ? normalizePhone11(item.userPhone) : (item.userName || "user");
+          const { color: userColor, softBg } = getChatUserColors(userKey, isDarkTheme);
 
           return `
-            <article class="chat-msg${isMine ? " mine" : ""}">
+            <article class="chat-msg${isMine ? " mine" : ""}" style="border-left: 3px solid ${userColor}; background: linear-gradient(0deg, ${softBg}, ${softBg}), var(--surface);">
               <div class="chat-meta">
-                <span>📅 ${safeDate}</span>
-                <span>⏰ ${safeTime}</span>
-                <span class="chat-author">${safeName}</span>
-                ${isMine ? '<span class="chat-meta-badge">Вы</span>' : ""}
+                <span class="chat-author" style="color: ${userColor}; font-weight: 700;">${safeName}</span>
+                ${safeDateTime ? `<span class="chat-time">${safeDateTime}</span>` : ""}
               </div>
               <div class="chat-text">${safeText}</div>
             </article>
@@ -4314,6 +4413,7 @@
         id: "msg-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
         date: stamp.date,
         time: stamp.time,
+        createdAt: new Date().toISOString(),
         userName: displayName,
         userPhone: appState.session.phone,
         message: trimmed
@@ -5364,6 +5464,37 @@
         if (commArcMenu) commArcMenu.setAttribute("aria-hidden", isOpen ? "false" : "true");
       };
 
+      const isMobileOrTouchForChatKb = () => {
+        const isTouch = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0) || (window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        return isIOS || isTouch || window.innerWidth <= 900;
+      };
+      let chatKbBlurTimer = null;
+      ["hubChatInput", "drawerChatInput"].forEach((inputId) => {
+        const inputEl = document.getElementById(inputId);
+        if (!inputEl) return;
+        inputEl.addEventListener("focus", () => {
+          if (!isMobileOrTouchForChatKb()) return;
+          if (chatKbBlurTimer) {
+            clearTimeout(chatKbBlurTimer);
+            chatKbBlurTimer = null;
+          }
+          setCommMenuOpen(false);
+          document.body.classList.add("chat-keyboard-open");
+        });
+        inputEl.addEventListener("blur", () => {
+          if (chatKbBlurTimer) clearTimeout(chatKbBlurTimer);
+          chatKbBlurTimer = setTimeout(() => {
+            const active = document.activeElement;
+            const stillInChat = active && (active.id === "hubChatInput" || active.id === "drawerChatInput" || Boolean(active.closest && active.closest(".chat-form")));
+            if (!stillInChat) {
+              document.body.classList.remove("chat-keyboard-open");
+              if (typeof schedulePositionHubChat === "function") schedulePositionHubChat();
+            }
+          }, 250);
+        });
+      });
+
       if (btnPhoneFab && commFabWrap) {
         btnPhoneFab.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -6350,6 +6481,10 @@
         ? window.visualViewport.height
         : window.innerHeight;
       document.documentElement.style.setProperty("--app-height", h + "px");
+      const activeEl = document.activeElement;
+      if (activeEl && activeEl.closest && activeEl.closest(".chat-form")) {
+        document.body.classList.add("chat-keyboard-open");
+      }
       if (typeof schedulePositionHubChat === "function") {
         schedulePositionHubChat();
       }
