@@ -2297,6 +2297,8 @@
       margin: 0;
       font-size: 18px;
       font-weight: 800;
+      letter-spacing: -0.01em;
+      color: var(--topbar-text, #ffffff) !important;
     }
 
     .admin-page-actions {
@@ -2304,6 +2306,47 @@
       align-items: center;
       gap: 8px;
       flex-wrap: wrap;
+    }
+
+    .admin-page-topbar .btn {
+      background: var(--topbar-btn-bg, rgba(255, 255, 255, 0.14));
+      border: 1px solid var(--topbar-btn-border, rgba(255, 255, 255, 0.28));
+      color: var(--topbar-btn-text, var(--topbar-text, #ffffff));
+      border-radius: 10px;
+      font-weight: 600;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+    }
+
+    .admin-page-topbar .btn:hover {
+      background: rgba(255, 255, 255, 0.24);
+      border-color: rgba(255, 255, 255, 0.45);
+    }
+
+    .admin-page-topbar .btn-danger,
+    .admin-page-topbar #btnAdminCleanChatAction {
+      background: rgba(239, 68, 68, 0.22);
+      border: 1px solid rgba(252, 165, 165, 0.45);
+      color: #ffffff;
+    }
+
+    [data-theme="light"] .admin-page-topbar .btn-danger,
+    [data-theme="light"] .admin-page-topbar #btnAdminCleanChatAction,
+    [data-theme="mint"] .admin-page-topbar .btn-danger,
+    [data-theme="mint"] .admin-page-topbar #btnAdminCleanChatAction,
+    [data-theme="pink"] .admin-page-topbar .btn-danger,
+    [data-theme="pink"] .admin-page-topbar #btnAdminCleanChatAction {
+      background: rgba(220, 38, 38, 0.14);
+      border-color: rgba(220, 38, 38, 0.38);
+      color: #991b1b;
+    }
+
+    .admin-page-topbar .btn-danger:hover,
+    .admin-page-topbar #btnAdminCleanChatAction:hover {
+      background: rgba(220, 38, 38, 0.85);
+      border-color: rgba(254, 202, 202, 0.8);
+      color: #ffffff;
     }
 
     .admin-section-card {
@@ -2400,14 +2443,68 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 5px 10px;
+      height: 32px;
+      padding: 0 10px;
       border-radius: 10px;
       border: 1px solid var(--border);
       background: var(--surface);
+      color: var(--text);
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 600;
+      box-sizing: border-box;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
       cursor: pointer;
       user-select: none;
+      transition: all 0.16s ease;
+    }
+
+    .admin-chat-toggle-label:hover {
+      background: var(--surface-2);
+      border-color: var(--primary);
+    }
+
+    .admin-user-controls .btn,
+    #btnAdminMarkAlertsSeen,
+    #btnAdminCloseEditor {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+      transition: all 0.16s ease;
+    }
+
+    .admin-user-controls .btn {
+      height: 32px;
+      padding: 0 10px !important;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+
+    .admin-user-controls .btn:hover,
+    #btnAdminMarkAlertsSeen:hover,
+    #btnAdminCloseEditor:hover {
+      background: var(--surface-2);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    #adminModalBackdrop #adminSearchInput {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface-2);
+      color: var(--text);
+      padding: 9px 12px;
+      font-size: 14px;
+      transition: border-color 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    #adminModalBackdrop #adminSearchInput:focus {
+      outline: none;
+      border-color: var(--border-focus, var(--primary));
     }
 
     .admin-chat-toggle-label input[type="checkbox"] {
