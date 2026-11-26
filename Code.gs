@@ -807,6 +807,10 @@ function handleAuthSetupPin(payload) {
   }
   invalidateProfilesCache();
 
+  try {
+    addRegisteredUserToContacts_(SpreadsheetApp.getActiveSpreadsheet(), fullName, phone);
+  } catch (e) {}
+
   var isAdm = isRowAdmin({ userId: phone, role: assignedRole }, phone);
   var setupProfile = buildUserProfileObject({
     userId: phone,
@@ -1131,6 +1135,34 @@ function formatPhoneMask_(raw) {
     return "+7 " + p.slice(1, 4) + " " + p.slice(4, 7) + " " + p.slice(7, 9) + " " + p.slice(9, 11);
   }
   return String(raw || "").replace(/^'/, "").trim();
+}
+
+function addRegisteredUserToContacts_(ss, fullName, phone11) {
+  var p11 = normalizePhone(phone11);
+  if (p11.length !== 11) return;
+  var cleanFullName = String(fullName || "").trim();
+  var sheet = getOrCreateSheet("Контакты_Эксперт");
+  try {
+    sheet.getRange("C:C").setNumberFormat("@");
+  } catch (e) {}
+  var lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    var vals = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+    for (var i = 0; i < vals.length; i++) {
+      if (normalizePhone(vals[i][2]) === p11) {
+        if (String(vals[i][1] || "").trim() === "" && cleanFullName) {
+          sheet.getRange(i + 2, 2).setValue(cleanFullName);
+          gasCacheRemove(GAS_CACHE_CONTACTS_KEY);
+        }
+        return;
+      }
+    }
+  }
+  var formattedPhone = formatPhoneMask_(p11);
+  var id = "c-reg-" + Date.now();
+  var nowIso = new Date().toISOString();
+  sheet.appendRow([id, cleanFullName, "'" + formattedPhone, "", nowIso]);
+  gasCacheRemove(GAS_CACHE_CONTACTS_KEY);
 }
 
 function seedExpertContacts() {
