@@ -5896,6 +5896,11 @@
             return;
           }
           if (isRegister) {
+            if (setupFullName.length < 2) {
+              setStatusBox(statusEl, "Укажите ваше ФИО для регистрации.", "error");
+              if (setupFullNameEl) setupFullNameEl.focus();
+              return;
+            }
             if (!secretHint) {
               setStatusBox(statusEl, "Укажите вопрос-подсказку для восстановления ПИН-кода.", "error");
               if (setupHintEl) setupHintEl.focus();
@@ -5960,6 +5965,9 @@
               setStatusBox(statusEl, "", "");
               syncAuthUI({ forceReplace: true, isAccountSwitch: switchedUser });
               syncHubSessionToModules();
+              if (isRegister && typeof refreshContacts === "function") {
+                refreshContacts();
+              }
               return;
             }
 
