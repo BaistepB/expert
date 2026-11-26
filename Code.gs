@@ -106,7 +106,7 @@ const SHEET_SCHEMAS = {
     "userId", "pin", "secretWord", "secretHint", "fullName", "position",
     "organization", "normSummer", "normWinter", "carBrand", "carPlate",
     "driverLicense", "fuelType", "startPoint", "updatedAt", "role", "chatAllowed",
-    "lastSeenAt", "chatWelcomePending", "theme", "telegramTarget"
+    "lastSeenAt", "chatWelcomePending", "theme", "telegramTarget", "speedDial"
   ],
   "Месяцы": [
     "userId", "yearMonth", "odometerStart", "fuelStart", "odometerEnd",
@@ -341,6 +341,9 @@ function doPost(e) {
       case "saveUserTelegramTarget":
         result = handleSaveUserTelegramTarget(payload);
         break;
+      case "saveUserSpeedDial":
+        result = handleSaveUserSpeedDial(payload);
+        break;
       case "loadFullAccountState":
         result = handleLoadFullAccountState(payload);
         break;
@@ -357,6 +360,9 @@ function doPost(e) {
         break;
       case "contactsList":
         result = handleContactsList(payload);
+        break;
+      case "seedContacts":
+        result = seedExpertContacts();
         break;
 
       // ── Администрирование и статусы активности ──
@@ -454,6 +460,39 @@ function doPost(e) {
    ОБРАБОТЧИКИ КАРКАСА («ЭКСПЕРТ»)
    ========================================================================= */
 
+function normalizeSpeedDialSlots_(raw) {
+  if (raw === undefined || raw === null) return null;
+  var arr = null;
+  if (Array.isArray(raw)) {
+    arr = raw;
+  } else {
+    var str = String(raw).trim();
+    if (!str) return null;
+    try {
+      arr = JSON.parse(str);
+    } catch (e) {
+      return null;
+    }
+  }
+  if (!Array.isArray(arr)) return null;
+  var res = [];
+  for (var i = 0; i < 6; i++) {
+    var item = arr[i];
+    if (!item || typeof item !== "object") {
+      res.push(null);
+      continue;
+    }
+    var p11 = normalizePhone(item.phone);
+    if (p11.length < 10) {
+      res.push(null);
+      continue;
+    }
+    var nm = String(item.name || "Контакт").trim().slice(0, 40) || "Контакт";
+    res.push({ name: nm, phone: formatPhoneMask_(p11) });
+  }
+  return res;
+}
+
 function parseTelegramTarget_(raw) {
   if (raw === undefined || raw === null) return null;
   var obj = null;
@@ -494,6 +533,7 @@ function buildUserProfileObject(row, phone) {
     startPoint: r.startPoint || "",
     theme: r.theme || "",
     telegramTarget: parseTelegramTarget_(r.telegramTarget),
+    speedDial: normalizeSpeedDialSlots_(r.speedDial),
     role: adm ? "admin" : "user",
     isAdmin: adm,
     chatAllowed: isRowChatAllowed(r, p),
@@ -555,6 +595,7 @@ function handleAuthLogin(payload) {
     position: auth.row.position || "",
     theme: profileObj.theme,
     telegramTarget: profileObj.telegramTarget,
+    speedDial: profileObj.speedDial,
     phone: phone,
     role: userIsAdmin ? "admin" : "user",
     isAdmin: userIsAdmin,
@@ -661,6 +702,49 @@ function handleSaveUserTelegramTarget(payload) {
   invalidateProfilesCache();
 
   return { ok: true, telegramTarget: targetObj, updatedAt: now };
+}
+
+function handleSaveUserSpeedDial(payload) {
+  var phone = normalizePhone(payload.phone || payload.userId);
+  var pin = normalizePin(payload.pin);
+  if (!phone || pin.length !== 4) {
+    return { ok: false, error: "Укажите телефон и ПИН-код." };
+  }
+  var auth = checkUserAuth(phone, pin);
+  if (!auth.exists || !auth.ok || !auth.row) {
+    return { ok: false, error: "Ошибка авторизации." };
+  }
+  var rawSlots = Array.isArray(payload.slots) ? payload.slots : [];
+  var slots = [];
+  for (var i = 0; i < 6; i++) {
+    var item = rawSlots[i];
+    if (!item || typeof item !== "object") {
+      slots.push(null);
+      continue;
+    }
+    var p11 = normalizePhone(item.phone);
+    if (p11.length < 10) {
+      slots.push(null);
+      continue;
+    }
+    var nm = String(item.name || "Контакт").trim().slice(0, 40) || "Контакт";
+    slots.push({ name: nm, phone: formatPhoneMask_(p11) });
+  }
+
+  var sheet = getOrCreateSheet("Профили");
+  var headers = SHEET_SCHEMAS["Профили"];
+  var now = new Date().toISOString();
+  var slotsJson = JSON.stringify(slots);
+  var rowValues = [];
+  for (var h = 0; h < headers.length; h++) {
+    var col = headers[h];
+    if (col === "speedDial") rowValues.push(slotsJson);
+    else if (col === "updatedAt") rowValues.push(now);
+    else rowValues.push(auth.row[col] !== undefined ? auth.row[col] : "");
+  }
+  sheet.getRange(auth.row._rowIndex, 1, 1, headers.length).setValues([rowValues]);
+  invalidateProfilesCache();
+  return { ok: true, speedDial: slots, updatedAt: now };
 }
 
 function handleAuthSetupPin(payload) {
@@ -1035,8 +1119,11 @@ var EXPERT_DEFAULT_CONTACTS = [
   { id: "c-40", fullName: "Фолимагин Александр", phone: "+7 977 446 46 81", note: "Эксперт" },
   { id: "c-41", fullName: "Шаров Алексей", phone: "+7 929 977 77 48", note: "Эксперт" },
   { id: "c-42", fullName: "Шестаков Владислав", phone: "+7 917 582 11 59", note: "Эксперт" },
-  { id: "c-43", fullName: "Шунков Эльдар", phone: "+7 929 928 81 50", note: "Эксперт" }
+  { id: "c-43", fullName: "Шунков Эльдар", phone: "+7 929 928 81 50", note: "Эксперт" },
+  { id: "c-44", fullName: "Склад", phone: "+7 919 960 39 48", note: "Склад" }
 ];
+
+var CONTACTS_SEED_VERSION = "v44_sklad";
 
 function formatPhoneMask_(raw) {
   var p = normalizePhone(raw);
@@ -1079,6 +1166,9 @@ function seedExpertContacts() {
     var startRow = Math.max(2, lastRow + 1);
     sheet.getRange(startRow, 1, rowsToAppend.length, 5).setValues(rowsToAppend);
   }
+  try {
+    PropertiesService.getScriptProperties().setProperty("CONTACTS_SEED_VERSION", CONTACTS_SEED_VERSION);
+  } catch (e) {}
   gasCacheRemove(GAS_CACHE_CONTACTS_KEY);
   return { ok: true, added: rowsToAppend.length, total: existingCount + rowsToAppend.length };
 }
@@ -1092,16 +1182,24 @@ function setupExpertDatabase() {
 }
 
 function handleContactsList(payload) {
-  // Кэш на 180 секунд — контакты меняются редко
-  var cached = gasCacheGet(GAS_CACHE_CONTACTS_KEY);
-  if (cached && Array.isArray(cached.contacts)) {
-    return cached;
+  var savedSeedVersion = "";
+  try {
+    savedSeedVersion = PropertiesService.getScriptProperties().getProperty("CONTACTS_SEED_VERSION") || "";
+  } catch (e) {}
+  var needReseed = savedSeedVersion !== CONTACTS_SEED_VERSION;
+
+  if (!needReseed) {
+    // Кэш на 180 секунд — контакты меняются редко
+    var cached = gasCacheGet(GAS_CACHE_CONTACTS_KEY);
+    if (cached && Array.isArray(cached.contacts)) {
+      return cached;
+    }
   }
 
   var sheet = getOrCreateSheet("Контакты_Эксперт");
   var list = sheetToObjects(sheet);
 
-  if (list.length === 0) {
+  if (needReseed || list.length === 0) {
     seedExpertContacts();
     list = sheetToObjects(sheet);
   }
@@ -1364,6 +1462,15 @@ function handleSaveProfile(payload) {
         rowValues.push(parsedTg ? JSON.stringify(parsedTg) : "");
       } else {
         rowValues.push(prevRow.telegramTarget !== undefined && prevRow.telegramTarget !== null ? String(prevRow.telegramTarget) : "");
+      }
+    }
+    else if (col === "speedDial") {
+      var incomingSd = (profile && profile.speedDial !== undefined) ? profile.speedDial : payload.speedDial;
+      if (incomingSd !== undefined) {
+        var parsedSd = normalizeSpeedDialSlots_(incomingSd);
+        rowValues.push(parsedSd ? JSON.stringify(parsedSd) : "");
+      } else {
+        rowValues.push(prevRow.speedDial !== undefined && prevRow.speedDial !== null ? String(prevRow.speedDial) : "");
       }
     }
     else rowValues.push("");
