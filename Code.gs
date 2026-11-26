@@ -744,6 +744,62 @@ function handleAuthResetPin(payload) {
   return { ok: false, error: "Пользователь с таким номером не найден." };
 }
 
+function formatChatMoscowFields_(rawDate, rawTime, rawCreatedAt) {
+  var dt = null;
+  if (rawCreatedAt !== undefined && rawCreatedAt !== null && String(rawCreatedAt).trim() !== "") {
+    if (Object.prototype.toString.call(rawCreatedAt) === "[object Date]" && !isNaN(rawCreatedAt.getTime())) {
+      dt = rawCreatedAt;
+    } else {
+      var parsedCreated = new Date(String(rawCreatedAt).trim());
+      if (!isNaN(parsedCreated.getTime()) && parsedCreated.getFullYear() >= 2000) {
+        dt = parsedCreated;
+      }
+    }
+  }
+  if (dt) {
+    return {
+      date: Utilities.formatDate(dt, "Europe/Moscow", "dd.MM.yyyy"),
+      time: Utilities.formatDate(dt, "Europe/Moscow", "HH:mm"),
+      createdAt: dt.toISOString()
+    };
+  }
+
+  var cleanDate = "";
+  if (Object.prototype.toString.call(rawDate) === "[object Date]" && !isNaN(rawDate.getTime())) {
+    if (rawDate.getFullYear() >= 2000) {
+      cleanDate = Utilities.formatDate(rawDate, "Europe/Moscow", "dd.MM.yyyy");
+    }
+  } else {
+    var strDate = String(rawDate || "").replace(/^'/, "").trim();
+    if (/^\d{4}-\d{2}-\d{2}T/.test(strDate)) {
+      var parsedD = new Date(strDate);
+      if (!isNaN(parsedD.getTime()) && parsedD.getFullYear() >= 2000) {
+        cleanDate = Utilities.formatDate(parsedD, "Europe/Moscow", "dd.MM.yyyy");
+      }
+    } else if (strDate.indexOf("1899-") === -1) {
+      cleanDate = strDate;
+    }
+  }
+
+  var cleanTime = "";
+  if (Object.prototype.toString.call(rawTime) === "[object Date]" && !isNaN(rawTime.getTime())) {
+    cleanTime = Utilities.formatDate(rawTime, "Europe/Moscow", "HH:mm");
+  } else {
+    var strTime = String(rawTime || "").replace(/^'/, "").trim();
+    if (/^\d{4}-\d{2}-\d{2}T/.test(strTime)) {
+      var parsedT = new Date(strTime);
+      if (!isNaN(parsedT.getTime())) {
+        cleanTime = Utilities.formatDate(parsedT, "Europe/Moscow", "HH:mm");
+      }
+    } else {
+      var mTime = strTime.match(/(\d{2}:\d{2})/);
+      cleanTime = mTime ? mTime[1] : strTime;
+    }
+  }
+
+  return { date: cleanDate, time: cleanTime, createdAt: "" };
+}
+
 function getCachedRecentChatMessages() {
   var cached = gasCacheGet(GAS_CACHE_CHAT_KEY);
   if (cached && Array.isArray(cached.messages)) {
@@ -753,10 +809,12 @@ function getCachedRecentChatMessages() {
   var list = sheetToObjects(sheet);
   var recent = list.slice(-50);
   var formatted = recent.map(function(r) {
+    var msk = formatChatMoscowFields_(r.date, r.time, r.createdAt);
     return {
       id: r.id || ("msg-" + r._rowIndex),
-      date: r.date || "",
-      time: r.time || "",
+      date: msk.date,
+      time: msk.time,
+      createdAt: msk.createdAt,
       userName: r.userName || "",
       userPhone: r.userPhone || "",
       message: r.message || ""
@@ -824,15 +882,16 @@ function handleChatSend(payload) {
 
   var sheet = getOrCreateSheet("Чат_Эксперт");
   var id = "msg-" + Date.now();
-  var date = payload.date || "";
-  var time = payload.time || "";
+  var now = new Date();
+  var createdAtIso = now.toISOString();
+  var mskDate = Utilities.formatDate(now, "Europe/Moscow", "dd.MM.yyyy");
+  var mskTime = Utilities.formatDate(now, "Europe/Moscow", "HH:mm");
   var userName = payload.userName || auth.row.fullName || "Сотрудник";
-  var createdAt = new Date().toISOString();
 
-  sheet.appendRow([id, date, time, userName, phone, text, createdAt]);
+  sheet.appendRow([id, "'" + mskDate, "'" + mskTime, userName, phone, text, createdAtIso]);
   // Инвалидируем кэш чата после отправки нового сообщения
   gasCacheRemove(GAS_CACHE_CHAT_KEY);
-  return { ok: true, id: id };
+  return { ok: true, id: id, date: mskDate, time: mskTime, createdAt: createdAtIso };
 }
 
 function handleChatClean(payload) {
