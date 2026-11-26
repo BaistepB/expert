@@ -106,7 +106,7 @@ const SHEET_SCHEMAS = {
     "userId", "pin", "secretWord", "secretHint", "fullName", "position",
     "organization", "normSummer", "normWinter", "carBrand", "carPlate",
     "driverLicense", "fuelType", "startPoint", "updatedAt", "role", "chatAllowed",
-    "lastSeenAt", "chatWelcomePending", "theme"
+    "lastSeenAt", "chatWelcomePending", "theme", "telegramTarget"
   ],
   "Месяцы": [
     "userId", "yearMonth", "odometerStart", "fuelStart", "odometerEnd",
@@ -338,6 +338,9 @@ function doPost(e) {
       case "saveUserTheme":
         result = handleSaveUserTheme(payload);
         break;
+      case "saveUserTelegramTarget":
+        result = handleSaveUserTelegramTarget(payload);
+        break;
       case "loadFullAccountState":
         result = handleLoadFullAccountState(payload);
         break;
@@ -451,6 +454,28 @@ function doPost(e) {
    ОБРАБОТЧИКИ КАРКАСА («ЭКСПЕРТ»)
    ========================================================================= */
 
+function parseTelegramTarget_(raw) {
+  if (raw === undefined || raw === null) return null;
+  var obj = null;
+  if (typeof raw === "object") {
+    obj = raw;
+  } else {
+    var str = String(raw).trim();
+    if (!str) return null;
+    try {
+      obj = JSON.parse(str);
+    } catch (e) {
+      return null;
+    }
+  }
+  if (!obj || typeof obj !== "object") return null;
+  var mode = String(obj.mode || "").trim();
+  if (mode !== "sales" && mode !== "bot_gos" && mode !== "saved" && mode !== "custom") return null;
+  var customUrl = mode === "custom" ? String(obj.customUrl || "").trim() : "";
+  if (mode === "custom" && !customUrl) return null;
+  return { mode: mode, customUrl: customUrl };
+}
+
 function buildUserProfileObject(row, phone) {
   var r = row || {};
   var p = normalizePhone(r.userId || phone);
@@ -468,6 +493,7 @@ function buildUserProfileObject(row, phone) {
     fuelType: r.fuelType || "",
     startPoint: r.startPoint || "",
     theme: r.theme || "",
+    telegramTarget: parseTelegramTarget_(r.telegramTarget),
     role: adm ? "admin" : "user",
     isAdmin: adm,
     chatAllowed: isRowChatAllowed(r, p),
@@ -528,6 +554,7 @@ function handleAuthLogin(payload) {
     fullName: auth.row.fullName || "",
     position: auth.row.position || "",
     theme: profileObj.theme,
+    telegramTarget: profileObj.telegramTarget,
     phone: phone,
     role: userIsAdmin ? "admin" : "user",
     isAdmin: userIsAdmin,
@@ -591,6 +618,49 @@ function handleSaveUserTheme(payload) {
   invalidateProfilesCache();
 
   return { ok: true, theme: nextTheme, updatedAt: now };
+}
+
+function handleSaveUserTelegramTarget(payload) {
+  var phone = normalizePhone(payload.phone || payload.userId);
+  var pin = normalizePin(payload.pin);
+  var mode = String(payload.mode || "").trim();
+  var customUrl = String(payload.customUrl || "").trim();
+
+  if (!phone || pin.length !== 4) {
+    return { ok: false, error: "Укажите телефон и ПИН-код." };
+  }
+  if (mode !== "sales" && mode !== "bot_gos" && mode !== "saved" && mode !== "custom") {
+    return { ok: false, error: "Недопустимый вариант кнопки Telegram." };
+  }
+  if (mode === "custom" && !customUrl) {
+    return { ok: false, error: "Укажите ссылку или @username для кнопки Telegram." };
+  }
+  if (mode !== "custom") {
+    customUrl = "";
+  }
+
+  var auth = checkUserAuth(phone, pin);
+  if (!auth.exists || !auth.ok || !auth.row) {
+    return { ok: false, error: "Ошибка авторизации." };
+  }
+
+  var sheet = getOrCreateSheet("Профили");
+  var headers = SHEET_SCHEMAS["Профили"];
+  var now = new Date().toISOString();
+  var targetObj = { mode: mode, customUrl: customUrl };
+  var targetJson = JSON.stringify(targetObj);
+  var rowValues = [];
+  for (var h = 0; h < headers.length; h++) {
+    var col = headers[h];
+    if (col === "telegramTarget") rowValues.push(targetJson);
+    else if (col === "updatedAt") rowValues.push(now);
+    else rowValues.push(auth.row[col] !== undefined ? auth.row[col] : "");
+  }
+
+  sheet.getRange(auth.row._rowIndex, 1, 1, headers.length).setValues([rowValues]);
+  invalidateProfilesCache();
+
+  return { ok: true, telegramTarget: targetObj, updatedAt: now };
 }
 
 function handleAuthSetupPin(payload) {
@@ -1287,6 +1357,15 @@ function handleSaveProfile(payload) {
     else if (col === "chatAllowed") rowValues.push(existingChatAllowed);
     else if (col === "lastSeenAt") rowValues.push(existingLastSeenAt);
     else if (col === "chatWelcomePending") rowValues.push(existingChatWelcomePending);
+    else if (col === "telegramTarget") {
+      var incomingTg = (profile && profile.telegramTarget !== undefined) ? profile.telegramTarget : payload.telegramTarget;
+      if (incomingTg !== undefined) {
+        var parsedTg = parseTelegramTarget_(incomingTg);
+        rowValues.push(parsedTg ? JSON.stringify(parsedTg) : "");
+      } else {
+        rowValues.push(prevRow.telegramTarget !== undefined && prevRow.telegramTarget !== null ? String(prevRow.telegramTarget) : "");
+      }
+    }
     else rowValues.push("");
   }
 
