@@ -1982,6 +1982,59 @@
       font-weight: 800;
     }
 
+    .tg-option-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tg-option-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 11px 13px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface-2, var(--surface));
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .tg-option-card:hover {
+      border-color: var(--primary);
+    }
+
+    .tg-option-card.selected {
+      border-color: var(--primary);
+      background: var(--primary-light, var(--surface-2));
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    .tg-option-card input[type="radio"] {
+      margin-top: 3px;
+      accent-color: var(--primary);
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .tg-option-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .tg-option-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+      line-height: 1.35;
+    }
+
     .contact-item {
       display: flex;
       align-items: center;
@@ -2949,8 +3002,71 @@
         </select>
       </div>
 
+      <!-- Раздел Виджет -> Telegram -->
+      <div style="margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: var(--surface-2, var(--surface)); border: 1px solid var(--border);">
+        <div style="font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Виджет</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <div style="min-width: 0;">
+            <div style="font-weight: 700; font-size: 14px;">Telegram</div>
+            <div id="settingsTgTargetValue" style="font-size: 12px; color: var(--muted); margin-top: 2px; word-break: break-word;">Не выбрано</div>
+          </div>
+          <button type="button" class="btn btn-ghost" id="btnSettingsEditTgTarget" style="flex-shrink: 0;">Изменить</button>
+        </div>
+      </div>
+
       <div style="margin-top: 16px;">
         <button type="button" class="btn btn-primary" id="btnApplySettings" style="width: 100%;">Готово</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно настройки кнопки Telegram в виджете -->
+  <div class="modal-backdrop" id="tgConfigModalBackdrop" aria-hidden="true">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-top">
+        <h3>✈️ Настройка кнопки Telegram</h3>
+        <button type="button" class="btn btn-ghost" id="btnCloseTgConfigModal">✕</button>
+      </div>
+      <div style="font-size: 13px; color: var(--muted); line-height: 1.45;">
+        Выберите, что будет открываться при нажатии на иконку Telegram в виджете
+      </div>
+      <div class="tg-option-list" id="tgConfigOptionList">
+        <label class="tg-option-card" data-tg-option="sales">
+          <input type="radio" name="tgTargetMode" value="sales" />
+          <div>
+            <div class="tg-option-title">Отдел продаж</div>
+            <div class="tg-option-sub">Рабочая группа</div>
+          </div>
+        </label>
+        <label class="tg-option-card" data-tg-option="bot_gos">
+          <input type="radio" name="tgTargetMode" value="bot_gos" />
+          <div>
+            <div class="tg-option-title">Бот ГОС</div>
+            <div class="tg-option-sub">@test_gulf_confluence_bot</div>
+          </div>
+        </label>
+        <label class="tg-option-card" data-tg-option="saved">
+          <input type="radio" name="tgTargetMode" value="saved" />
+          <div>
+            <div class="tg-option-title">Ваше избранное</div>
+            <div class="tg-option-sub">Чат «Избранное» по вашему номеру</div>
+          </div>
+        </label>
+        <label class="tg-option-card" data-tg-option="custom">
+          <input type="radio" name="tgTargetMode" value="custom" />
+          <div style="flex: 1; min-width: 0;">
+            <div class="tg-option-title">Ваша ссылка</div>
+            <div class="tg-option-sub">Любой чат, канал, бот или @username</div>
+          </div>
+        </label>
+      </div>
+      <div id="tgCustomUrlWrap" style="display: none; margin-top: 10px;">
+        <input type="text" id="tgCustomUrlInput" placeholder="https://t.me/... или @username" autocomplete="off" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 14px; box-sizing: border-box;" />
+      </div>
+      <div id="tgConfigError" class="status-msg error" style="display: none; margin-top: 10px;"></div>
+      <div style="display: flex; gap: 10px; margin-top: 16px;">
+        <button type="button" class="btn btn-ghost" id="btnCancelTgConfig" style="flex: 1;">Отмена</button>
+        <button type="button" class="btn btn-primary" id="btnSaveTgConfig" style="flex: 1.4;">Сохранить</button>
       </div>
     </div>
   </div>
@@ -3228,6 +3344,10 @@
       telegramUrl: "https://t.me/expert_team_chat",
       // Ссылка на Telegram поддержки при утере кодового слова
       supportTelegramUrl: "https://t.me/expert_support_bot",
+      telegramTargets: {
+        sales: "https://t.me/c/2035682497/1",
+        bot_gos: "https://t.me/test_gulf_confluence_bot"
+      },
       // Префиксы и ключи локального хранилища
       storageKeys: {
         session: "expert_hub_session_v1",
@@ -3236,6 +3356,7 @@
         profileCache: "expert_hub_profile_cache_v1",
         addressesCache: "expert_hub_addresses_cache_v1",
         lastSyncedPhone: "expert_hub_last_synced_phone_v1",
+        telegramTarget: "expert_hub_telegram_target",
         // Жёстко защищённый ключ модуля маршрутов (ЗАПРЕЩЕНО затирать и удалять!)
         protectedRouteHistory: "expert_app_route_history_v1"
       }
@@ -3538,6 +3659,14 @@
         }
       }
 
+      if (incoming.telegramTarget !== undefined) {
+        const normTg = normalizeTelegramTargetObj(incoming.telegramTarget);
+        if (normTg) {
+          mergedProfile.telegramTarget = normTg;
+          saveTelegramTarget(normTg, { syncServer: false });
+        }
+      }
+
       // Синхронизируем справочник адресов
       let mergedAddresses = window.__EXPERT_ADDRESSES__ || [];
       if (Array.isArray(rawAddresses) || (mergedProfile.startPoint && String(mergedProfile.startPoint).trim())) {
@@ -3563,6 +3692,134 @@
         syncHubSessionToModules();
       }
       return { profile: mergedProfile, addresses: mergedAddresses };
+    }
+
+    function normalizeTelegramUrl(raw) {
+      let s = String(raw || "").trim();
+      if (!s) return "";
+      const webMatch = s.match(/web\.telegram\.org\/(?:[a-z]\/)?#?@([A-Za-z0-9_]+)/i);
+      if (webMatch && webMatch[1]) {
+        return "https://t.me/" + webMatch[1];
+      }
+      if (s.startsWith("@")) {
+        return "https://t.me/" + s.slice(1).trim();
+      }
+      if (/^t\.me\//i.test(s)) {
+        return "https://" + s;
+      }
+      if (/^(https?:\/\/|tg:\/\/)/i.test(s)) {
+        return s;
+      }
+      if (/^[A-Za-z0-9_]{3,}$/.test(s)) {
+        return "https://t.me/" + s;
+      }
+      return "https://" + s;
+    }
+
+    function normalizeTelegramTargetObj(raw) {
+      if (!raw) return null;
+      let obj = raw;
+      if (typeof raw === "string") {
+        try { obj = JSON.parse(raw); } catch (e) { return null; }
+      }
+      if (!obj || typeof obj !== "object") return null;
+      const mode = String(obj.mode || "").trim();
+      if (!["sales", "bot_gos", "saved", "custom"].includes(mode)) return null;
+      const customUrl = mode === "custom" ? normalizeTelegramUrl(obj.customUrl || "") : "";
+      if (mode === "custom" && !customUrl) return null;
+      return { mode, customUrl };
+    }
+
+    function resolveTelegramTargetUrl(targetObj, userPhone) {
+      const norm = normalizeTelegramTargetObj(targetObj);
+      if (!norm) return EXPERT_CONFIG.telegramUrl || "https://t.me/";
+      if (norm.mode === "sales") return EXPERT_CONFIG.telegramTargets.sales;
+      if (norm.mode === "bot_gos") return EXPERT_CONFIG.telegramTargets.bot_gos;
+      if (norm.mode === "saved") {
+        const p11 = normalizePhone11(userPhone);
+        return p11.length === 11 ? ("https://t.me/+" + p11) : "https://t.me/";
+      }
+      if (norm.mode === "custom") return normalizeTelegramUrl(norm.customUrl) || "https://t.me/";
+      return "https://t.me/";
+    }
+
+    function getTelegramTargetLabel(targetObj) {
+      const norm = normalizeTelegramTargetObj(targetObj);
+      if (!norm) return "Не выбрано";
+      if (norm.mode === "sales") return "Отдел продаж";
+      if (norm.mode === "bot_gos") return "Бот ГОС";
+      if (norm.mode === "saved") return "Ваше избранное";
+      if (norm.mode === "custom") return "Ваша ссылка" + (norm.customUrl ? (" (" + norm.customUrl + ")") : "");
+      return "Не выбрано";
+    }
+
+    function openTelegramUrl(url) {
+      const finalUrl = String(url || "").trim() || "https://t.me/";
+      const win = window.open(finalUrl, "_blank", "noopener,noreferrer");
+      if (!win) {
+        window.location.href = finalUrl;
+      }
+    }
+
+    function loadTelegramTargetForPhone(phone) {
+      try {
+        const raw = SafeStorage.get(EXPERT_CONFIG.storageKeys.telegramTarget);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        const pKey = normalizePhone11(phone) || "guest";
+        if (parsed && parsed.byPhone && parsed.byPhone[pKey]) {
+          return normalizeTelegramTargetObj(parsed.byPhone[pKey]);
+        }
+        return null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function updateSettingsTelegramUI() {
+      const el = document.getElementById("settingsTgTargetValue");
+      if (!el) return;
+      const target = (typeof appState !== "undefined" && appState.telegramTarget)
+        ? appState.telegramTarget
+        : loadTelegramTargetForPhone(typeof appState !== "undefined" && appState.session ? appState.session.phone : "");
+      el.textContent = getTelegramTargetLabel(target);
+    }
+
+    function saveTelegramTarget(targetObj, opts) {
+      const options = opts || {};
+      const syncServer = options.syncServer !== false;
+      const norm = normalizeTelegramTargetObj(targetObj);
+      if (!norm) return null;
+
+      if (typeof appState !== "undefined") {
+        appState.telegramTarget = norm;
+      }
+      const phone11 = (typeof appState !== "undefined" && appState.session) ? normalizePhone11(appState.session.phone) : "";
+      const pKey = phone11 || "guest";
+      try {
+        const raw = SafeStorage.get(EXPERT_CONFIG.storageKeys.telegramTarget);
+        const store = raw ? (JSON.parse(raw) || {}) : {};
+        if (!store.byPhone || typeof store.byPhone !== "object") store.byPhone = {};
+        store.byPhone[pKey] = norm;
+        SafeStorage.set(EXPERT_CONFIG.storageKeys.telegramTarget, JSON.stringify(store));
+      } catch (e) {}
+
+      if (window.__EXPERT_PROFILE__ && typeof window.__EXPERT_PROFILE__ === "object") {
+        window.__EXPERT_PROFILE__.telegramTarget = norm;
+        SafeStorage.set(EXPERT_CONFIG.storageKeys.profileCache, JSON.stringify(window.__EXPERT_PROFILE__));
+      }
+
+      updateSettingsTelegramUI();
+
+      if (syncServer && typeof appState !== "undefined" && appState.session && EXPERT_CONFIG.gasUrl) {
+        apiPost("saveUserTelegramTarget", {
+          phone: appState.session.phone,
+          pin: appState.session.pin,
+          mode: norm.mode,
+          customUrl: norm.customUrl
+        }).catch((err) => console.warn("[Telegram] Не удалось сохранить настройку в таблицу:", err));
+      }
+      return norm;
     }
 
     const applyAppTheme = applyHubTheme;
@@ -3799,6 +4056,7 @@
        ========================================================================= */
     const appState = {
       session: null,
+      telegramTarget: null,
       activeModule: null,
       messages: [],
       contacts: []
@@ -4866,6 +5124,7 @@
       appState.messages = DEFAULT_MESSAGES.slice();
       window.__EXPERT_PROFILE__ = null;
       window.__EXPERT_ADDRESSES__ = null;
+      appState.telegramTarget = null;
       if (newPhone) {
         SafeStorage.set(EXPERT_CONFIG.storageKeys.lastSyncedPhone, newPhone);
       }
@@ -5167,6 +5426,7 @@
         } else {
           if (settingsUserInfoBox) settingsUserInfoBox.style.display = "none";
         }
+        updateSettingsTelegramUI();
       };
 
       if (btnOpenSettings && settingsModal) {
@@ -5667,10 +5927,122 @@
         }
       };
 
+      const tgConfigModal = document.getElementById("tgConfigModalBackdrop");
+      const btnCloseTgConfigModal = document.getElementById("btnCloseTgConfigModal");
+      const btnCancelTgConfig = document.getElementById("btnCancelTgConfig");
+      const btnSaveTgConfig = document.getElementById("btnSaveTgConfig");
+      const tgCustomUrlWrap = document.getElementById("tgCustomUrlWrap");
+      const tgCustomUrlInput = document.getElementById("tgCustomUrlInput");
+      const tgConfigError = document.getElementById("tgConfigError");
+      const btnSettingsEditTgTarget = document.getElementById("btnSettingsEditTgTarget");
+      let tgConfigOpenAfterSave = false;
+
+      const syncTgOptionCardsUI = () => {
+        if (!tgConfigModal) return;
+        const selectedRadio = tgConfigModal.querySelector('input[name="tgTargetMode"]:checked');
+        const selectedMode = selectedRadio ? selectedRadio.value : "";
+        tgConfigModal.querySelectorAll(".tg-option-card").forEach((card) => {
+          card.classList.toggle("selected", card.getAttribute("data-tg-option") === selectedMode);
+        });
+        if (tgCustomUrlWrap) {
+          tgCustomUrlWrap.style.display = selectedMode === "custom" ? "block" : "none";
+        }
+        if (tgConfigError) {
+          tgConfigError.style.display = "none";
+          tgConfigError.textContent = "";
+        }
+      };
+
+      const closeTelegramConfigModal = () => {
+        if (tgConfigModal) {
+          tgConfigModal.classList.remove("open");
+          tgConfigModal.setAttribute("aria-hidden", "true");
+        }
+      };
+
+      const openTelegramConfigModal = (opts) => {
+        if (!tgConfigModal) return;
+        tgConfigOpenAfterSave = Boolean(opts && opts.openAfterSave);
+        const curPhone = appState.session ? appState.session.phone : "";
+        const current = normalizeTelegramTargetObj(appState.telegramTarget || loadTelegramTargetForPhone(curPhone));
+        tgConfigModal.querySelectorAll('input[name="tgTargetMode"]').forEach((r) => {
+          r.checked = Boolean(current && r.value === current.mode);
+        });
+        if (tgCustomUrlInput) {
+          tgCustomUrlInput.value = (current && current.mode === "custom" && current.customUrl) ? current.customUrl : "";
+        }
+        if (btnSaveTgConfig) {
+          btnSaveTgConfig.textContent = tgConfigOpenAfterSave ? "Сохранить и открыть" : "Сохранить";
+        }
+        syncTgOptionCardsUI();
+        tgConfigModal.classList.add("open");
+        tgConfigModal.setAttribute("aria-hidden", "false");
+      };
+
+      if (tgConfigModal) {
+        tgConfigModal.querySelectorAll('input[name="tgTargetMode"]').forEach((radio) => {
+          radio.addEventListener("change", () => {
+            syncTgOptionCardsUI();
+            if (radio.value === "custom" && tgCustomUrlInput) {
+              setTimeout(() => tgCustomUrlInput.focus(), 40);
+            }
+          });
+        });
+        tgConfigModal.addEventListener("click", (e) => {
+          if (e.target === tgConfigModal) closeTelegramConfigModal();
+        });
+      }
+      if (btnCloseTgConfigModal) btnCloseTgConfigModal.addEventListener("click", closeTelegramConfigModal);
+      if (btnCancelTgConfig) btnCancelTgConfig.addEventListener("click", closeTelegramConfigModal);
+      if (btnSettingsEditTgTarget) {
+        btnSettingsEditTgTarget.addEventListener("click", () => {
+          openTelegramConfigModal({ openAfterSave: false });
+        });
+      }
+
+      if (btnSaveTgConfig) {
+        btnSaveTgConfig.addEventListener("click", () => {
+          if (!tgConfigModal) return;
+          const selectedRadio = tgConfigModal.querySelector('input[name="tgTargetMode"]:checked');
+          if (!selectedRadio) {
+            if (tgConfigError) {
+              tgConfigError.textContent = "Выберите один из 4 вариантов.";
+              tgConfigError.style.display = "block";
+            }
+            return;
+          }
+          const mode = selectedRadio.value;
+          let customUrl = "";
+          if (mode === "custom") {
+            customUrl = normalizeTelegramUrl(tgCustomUrlInput ? tgCustomUrlInput.value : "");
+            if (!customUrl) {
+              if (tgConfigError) {
+                tgConfigError.textContent = "Введите ссылку вида https://t.me/... или @username.";
+                tgConfigError.style.display = "block";
+              }
+              if (tgCustomUrlInput) tgCustomUrlInput.focus();
+              return;
+            }
+          }
+          const saved = saveTelegramTarget({ mode, customUrl }, { syncServer: true });
+          closeTelegramConfigModal();
+          if (tgConfigOpenAfterSave && saved) {
+            const curPhone = appState.session ? appState.session.phone : "";
+            openTelegramUrl(resolveTelegramTargetUrl(saved, curPhone));
+          }
+        });
+      }
+
       const openTelegramChannel = () => {
         setCommMenuOpen(false);
-        const url = EXPERT_CONFIG.telegramUrl || "https://t.me/";
-        window.open(url, "_blank", "noopener,noreferrer");
+        const curPhone = appState.session ? appState.session.phone : "";
+        const current = normalizeTelegramTargetObj(appState.telegramTarget || loadTelegramTargetForPhone(curPhone));
+        if (current) {
+          appState.telegramTarget = current;
+          openTelegramUrl(resolveTelegramTargetUrl(current, curPhone));
+        } else {
+          openTelegramConfigModal({ openAfterSave: true });
+        }
       };
 
       if (arcItemCall) {
@@ -6652,6 +7024,7 @@
       startHubClock();
       lockMobileViewportScroll();
       appState.session = loadInitialSession();
+      appState.telegramTarget = loadTelegramTargetForPhone(appState.session ? appState.session.phone : "");
       try {
         const cachedProfRaw = SafeStorage.get(EXPERT_CONFIG.storageKeys.profileCache);
         if (cachedProfRaw) window.__EXPERT_PROFILE__ = JSON.parse(cachedProfRaw);
