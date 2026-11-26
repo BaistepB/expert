@@ -894,23 +894,75 @@
         overflow-x: hidden;
       }
 
+      body.on-hub {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: auto;
+        max-height: none;
+        overflow: hidden;
+        overscroll-behavior: none;
+      }
+
       body.on-hub .app-shell {
         height: 100%;
         max-height: 100%;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
       }
 
-      #hubChatContainer {
-        margin-top: 16px;
-        margin-bottom: auto;
+      body.on-hub #mainScreen {
+        flex: 1 1 auto;
+        min-height: 0;
+        padding-bottom: 14px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
       }
 
-      #hubChatContainer .chat-messages {
-        max-height: 220px;
+      body.on-hub #hubView {
+        flex: 1 1 auto;
+        min-height: 0;
+        padding-bottom: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
       }
 
-      .comm-fab-wrap {
-        bottom: 28px;
+      body.on-hub #hubChatContainer {
+        margin-top: auto;
+        margin-bottom: 0;
+        flex: 0 1 auto;
+        min-height: 0;
+        max-height: 245px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      body.on-hub #hubChatContainer .chat-header,
+      body.on-hub #hubChatContainer .chat-form {
+        flex: 0 0 auto;
+      }
+
+      body.on-hub #hubChatContainer .chat-messages {
+        flex: 1 1 auto;
+        min-height: 76px;
+        max-height: 145px;
+        overflow-y: auto;
+        touch-action: pan-y;
+      }
+
+      body.on-hub .comm-fab-wrap {
         right: 24px;
+        bottom: 272px;
+      }
+
+      body.in-module .comm-fab-wrap {
+        right: 24px;
+        bottom: 24px;
       }
     }
 
