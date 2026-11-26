@@ -922,6 +922,105 @@ function handleChatClean(payload) {
   };
 }
 
+var EXPERT_DEFAULT_CONTACTS = [
+  { id: "c-01", fullName: "Абрамов Сергей", phone: "+7 985 510 42 03", note: "Эксперт" },
+  { id: "c-02", fullName: "Амбарян Эдгар", phone: "+7 917 583 28 69", note: "Эксперт" },
+  { id: "c-03", fullName: "Анфалов Артем", phone: "+7 985 929 47 40", note: "Эксперт" },
+  { id: "c-04", fullName: "Баранов Александр", phone: "+7 916 921 56 69", note: "Продажи" },
+  { id: "c-05", fullName: "Бац Вячеслав", phone: "+7 916 921 59 63", note: "Диспетчер" },
+  { id: "c-06", fullName: "Беляев Дмитрий", phone: "+7 915 261 34 61", note: "Эксперт" },
+  { id: "c-07", fullName: "Беляев Михаил", phone: "+7 903 724 47 14", note: "Эксперт" },
+  { id: "c-08", fullName: "Босс Александр", phone: "+7 917 582 71 99", note: "Эксперт" },
+  { id: "c-09", fullName: "Великевич Егор", phone: "+7 915 450 45 24", note: "Эксперт" },
+  { id: "c-10", fullName: "Вещиков Вячеслав", phone: "+7 925 000 92 74", note: "Эксперт" },
+  { id: "c-11", fullName: "Герасименко Артём Михайлович", phone: "+7 999 483 13 50", note: "Эксперт" },
+  { id: "c-12", fullName: "Гремякин Дмитрий Анатольевич", phone: "+7 926 166 76 66", note: "Эксперт" },
+  { id: "c-13", fullName: "Гунт Матвей", phone: "+7 963 636 63 36", note: "Диспетчер" },
+  { id: "c-14", fullName: "Дубасов Анатолий", phone: "+7 963 755 55 01", note: "Эксперт" },
+  { id: "c-15", fullName: "Еремин Михаил", phone: "+7 916 489 76 62", note: "Эксперт" },
+  { id: "c-16", fullName: "Жердев Алексей", phone: "+7 925 711 12 77", note: "Эксперт" },
+  { id: "c-17", fullName: "Жук Сергей Сергеевич", phone: "+7 917 583 00 91", note: "ТЛ" },
+  { id: "c-18", fullName: "Зубарев Евгений", phone: "+7 985 004 72 41", note: "Эксперт" },
+  { id: "c-19", fullName: "Зудин Ян", phone: "+7 966 222 26 78", note: "Эксперт" },
+  { id: "c-20", fullName: "Карпов Александр", phone: "+7 903 214 60 31", note: "Эксперт" },
+  { id: "c-21", fullName: "Клещ Александр", phone: "+7 916 160 98 69", note: "Эксперт" },
+  { id: "c-22", fullName: "Козлов Александр", phone: "+7 926 700 76 99", note: "Продажи" },
+  { id: "c-23", fullName: "Корнеев Павел", phone: "+7 915 321 82 30", note: "Эксперт" },
+  { id: "c-24", fullName: "Корнеев Павел", phone: "+7 916 712 89 37", note: "Эксперт" },
+  { id: "c-25", fullName: "Кувшинов Антон", phone: "+7 925 079 84 60", note: "Эксперт" },
+  { id: "c-26", fullName: "Кудряшов Михаил", phone: "+7 904 350 44 80", note: "Эксперт" },
+  { id: "c-27", fullName: "Кузнецов Сергей", phone: "+7 926 281 70 47", note: "Эксперт" },
+  { id: "c-28", fullName: "Лемешев Роман", phone: "+7 916 497 66 25", note: "Эксперт" },
+  { id: "c-29", fullName: "Мосин Андрей", phone: "+7 915 488 68 88", note: "Эксперт" },
+  { id: "c-30", fullName: "Моторо Александр", phone: "+7 977 262 68 51", note: "Продажи" },
+  { id: "c-31", fullName: "Мхеян Максим", phone: "+7 915 031 88 46", note: "Эксперт" },
+  { id: "c-32", fullName: "Оленин Алексей Григорьевич", phone: "+7 916 161 14 55", note: "Эксперт" },
+  { id: "c-33", fullName: "Орлов Андрей", phone: "+7 977 142 65 00", note: "Эксперт" },
+  { id: "c-34", fullName: "Прошкин Кирилл", phone: "+7 985 912 90 20", note: "Эксперт" },
+  { id: "c-35", fullName: "Самарин Виталий", phone: "+7 916 681 79 75", note: "Эксперт" },
+  { id: "c-36", fullName: "Сандин Павел", phone: "+7 967 041 54 77", note: "Эксперт" },
+  { id: "c-37", fullName: "Смирнов Алексей", phone: "+7 916 060 68 95", note: "Эксперт" },
+  { id: "c-38", fullName: "Тюнин Денис", phone: "+7 916 571 27 07", note: "ТЛ" },
+  { id: "c-39", fullName: "Умяров Ильдар Ренадович", phone: "+7 917 975 33 80", note: "Эксперт" },
+  { id: "c-40", fullName: "Фолимагин Александр", phone: "+7 977 446 46 81", note: "Эксперт" },
+  { id: "c-41", fullName: "Шаров Алексей", phone: "+7 929 977 77 48", note: "Эксперт" },
+  { id: "c-42", fullName: "Шестаков Владислав", phone: "+7 917 582 11 59", note: "Эксперт" },
+  { id: "c-43", fullName: "Шунков Эльдар", phone: "+7 929 928 81 50", note: "Эксперт" }
+];
+
+function formatPhoneMask_(raw) {
+  var p = normalizePhone(raw);
+  if (p.length === 11) {
+    return "+7 " + p.slice(1, 4) + " " + p.slice(4, 7) + " " + p.slice(7, 9) + " " + p.slice(9, 11);
+  }
+  return String(raw || "").replace(/^'/, "").trim();
+}
+
+function seedExpertContacts() {
+  var sheet = getOrCreateSheet("Контакты_Эксперт");
+  try {
+    sheet.getRange("C:C").setNumberFormat("@");
+  } catch (e) {}
+  var lastRow = sheet.getLastRow();
+  var existingPhones = {};
+  var existingCount = 0;
+  if (lastRow > 1) {
+    var existingVals = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+    existingCount = existingVals.length;
+    for (var i = 0; i < existingVals.length; i++) {
+      var p11 = normalizePhone(existingVals[i][2]);
+      if (p11.length === 11) {
+        existingPhones[p11] = true;
+      }
+    }
+  }
+  var nowIso = new Date().toISOString();
+  var rowsToAppend = [];
+  for (var j = 0; j < EXPERT_DEFAULT_CONTACTS.length; j++) {
+    var c = EXPERT_DEFAULT_CONTACTS[j];
+    var cPhone11 = normalizePhone(c.phone);
+    if (!cPhone11 || existingPhones[cPhone11]) {
+      continue;
+    }
+    existingPhones[cPhone11] = true;
+    rowsToAppend.push([c.id, c.fullName, "'" + formatPhoneMask_(c.phone), c.note || "", nowIso]);
+  }
+  if (rowsToAppend.length > 0) {
+    var startRow = Math.max(2, lastRow + 1);
+    sheet.getRange(startRow, 1, rowsToAppend.length, 5).setValues(rowsToAppend);
+  }
+  gasCacheRemove(GAS_CACHE_CONTACTS_KEY);
+  return { ok: true, added: rowsToAppend.length, total: existingCount + rowsToAppend.length };
+}
+
+function setupExpertDatabase() {
+  var sheets = Object.keys(SHEET_SCHEMAS);
+  for (var i = 0; i < sheets.length; i++) {
+    getOrCreateSheet(sheets[i]);
+  }
+  return seedExpertContacts();
+}
+
 function handleContactsList(payload) {
   // Кэш на 180 секунд — контакты меняются редко
   var cached = gasCacheGet(GAS_CACHE_CONTACTS_KEY);
@@ -933,22 +1032,30 @@ function handleContactsList(payload) {
   var list = sheetToObjects(sheet);
 
   if (list.length === 0) {
-    var defaults = [
-      ["c-1", "Беляев Михаил Константинович", "+7 903 724 47 14", "Главный инженер", new Date().toISOString()],
-      ["c-2", "Складской комплекс / ПВЗ", "+7 999 123 45 67", "Приёмка и выдача заказов", new Date().toISOString()],
-      ["c-3", "Диспетчерская служба", "+7 900 111 22 33", "Маршруты и путевые листы", new Date().toISOString()]
-    ];
-    sheet.getRange(2, 1, defaults.length, defaults[0].length).setValues(defaults);
+    seedExpertContacts();
     list = sheetToObjects(sheet);
   }
 
-  var formatted = list.map(function(c) {
-    return {
+  var seenPhones = {};
+  var formatted = [];
+  for (var i = 0; i < list.length; i++) {
+    var c = list[i];
+    var rawPhone = String(c.phone || "").replace(/^'/, "").trim();
+    var p11 = normalizePhone(rawPhone);
+    if (p11.length === 11) {
+      if (seenPhones[p11]) continue;
+      seenPhones[p11] = true;
+    }
+    formatted.push({
       id: c.id || ("c-" + c._rowIndex),
-      fullName: c.fullName || "",
-      phone: c.phone || "",
-      note: c.note || ""
-    };
+      fullName: String(c.fullName || "").trim(),
+      phone: formatPhoneMask_(rawPhone),
+      note: String(c.note || "").trim()
+    });
+  }
+
+  formatted.sort(function(a, b) {
+    return String(a.fullName || "").localeCompare(String(b.fullName || ""), "ru");
   });
 
   var result = { ok: true, contacts: formatted };
