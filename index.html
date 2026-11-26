@@ -1621,6 +1621,14 @@
       transition: opacity 0.15s ease, transform 0.15s ease;
     }
 
+    /* Только десктоп: привязываем виджет к правому краю контента (.app-shell), не трогая телефон и планшет */
+    @media (min-width: 1000px) {
+      body.on-hub .comm-fab-wrap,
+      body.in-module .comm-fab-wrap {
+        right: calc((100vw - 960px) / 2 + 24px);
+      }
+    }
+
     .chat-time {
       margin-left: auto;
       font-size: 11px;
