@@ -2071,6 +2071,229 @@
       font-style: italic;
     }
 
+    #phoneModalBackdrop {
+      touch-action: pan-y;
+      overscroll-behavior: contain;
+    }
+
+    #phoneModalBackdrop .modal-card {
+      display: flex;
+      flex-direction: column;
+      max-height: 88dvh;
+      overflow: hidden;
+      touch-action: pan-y;
+      padding: 18px 18px 0;
+    }
+
+    #phoneModalBackdrop .modal-header {
+      flex: 0 0 auto;
+      margin-bottom: 12px;
+    }
+
+    #phoneModalBackdrop .modal-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+      overscroll-behavior: contain;
+      padding-bottom: 18px;
+    }
+
+    #phoneModalBackdrop .contacts-list,
+    #phoneModalBackdrop #contactsListContainer {
+      touch-action: pan-y;
+      overflow-y: visible;
+    }
+
+    .speed-dial-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .speed-dial-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      min-height: 74px;
+      padding: 9px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface-2, var(--surface));
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.16s ease, background 0.16s ease, transform 0.12s ease;
+      overflow: hidden;
+    }
+
+    .speed-dial-card:hover {
+      border-color: var(--primary);
+      background: var(--primary-light, var(--surface-2));
+    }
+
+    .speed-dial-card:active {
+      transform: scale(0.98);
+    }
+
+    .speed-dial-card.empty {
+      align-items: center;
+      justify-content: center;
+      border: 1.5px dashed var(--border);
+      background: transparent;
+      color: var(--muted);
+      box-shadow: none;
+      gap: 2px;
+    }
+
+    .speed-dial-card.empty:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--surface-2, transparent);
+    }
+
+    .speed-dial-plus {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .speed-dial-add-label {
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .speed-dial-icon {
+      font-size: 13px;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .speed-dial-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+      width: 100%;
+      padding-right: 18px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .speed-dial-phone {
+      font-size: 10.5px;
+      color: var(--muted);
+      margin-top: 3px;
+      line-height: 1.15;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .speed-dial-edit-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 11px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .speed-dial-edit-btn:hover {
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .speed-dial-editor {
+      margin-bottom: 14px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--primary);
+      background: var(--surface-2, var(--surface));
+    }
+
+    .speed-dial-editor-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .speed-dial-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .speed-dial-tab-btn {
+      flex: 1;
+      padding: 7px 10px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .speed-dial-tab-btn.active {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .speed-dial-contacts-list {
+      max-height: 200px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .speed-dial-pick-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+    }
+
+    .speed-dial-pick-item:hover {
+      border-color: var(--primary);
+    }
+
     .future-slot {
       border: 1px dashed #cbd5e1;
       border-radius: var(--radius-sm);
@@ -2947,24 +3170,56 @@
   <!-- Модальное окно кнопки «Трубка» -->
   <div class="modal-backdrop" id="phoneModalBackdrop" aria-hidden="true">
     <div class="modal-card">
-      <div class="modal-top">
+      <div class="modal-top modal-header">
         <h3>📞 Связь и контакты</h3>
         <button type="button" class="btn btn-ghost" id="btnClosePhoneModal">✕</button>
       </div>
 
+      <div class="modal-body">
+        <div id="speedDialGrid" class="speed-dial-grid"></div>
 
+        <div id="speedDialEditor" class="speed-dial-editor" style="display: none;">
+          <div class="speed-dial-editor-head">
+            <span id="speedDialEditorTitle">Быстрый вызов</span>
+          </div>
+          <div class="speed-dial-tabs">
+            <button type="button" class="speed-dial-tab-btn active" data-sd-tab="contacts">Из справочника</button>
+            <button type="button" class="speed-dial-tab-btn" data-sd-tab="custom">Свой номер</button>
+          </div>
+          <div id="speedDialTabContacts">
+            <input type="text" id="speedDialContactSearch" placeholder="Поиск по ФИО, роли или номеру..." autocomplete="off" style="width: 100%; padding: 8px 10px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; box-sizing: border-box;" />
+            <div id="speedDialContactsList" class="speed-dial-contacts-list"></div>
+          </div>
+          <div id="speedDialTabCustom" style="display: none;">
+            <div class="field" style="margin-bottom: 8px;">
+              <label for="speedDialCustomName" style="font-size: 12px;">Название на карточке</label>
+              <input type="text" id="speedDialCustomName" maxlength="40" placeholder="Например: Склад" autocomplete="off" />
+            </div>
+            <div class="field" style="margin-bottom: 8px;">
+              <label for="speedDialCustomPhone" style="font-size: 12px;">Номер телефона</label>
+              <input type="tel" id="speedDialCustomPhone" placeholder="+7 ___ ___ __ __" autocomplete="off" />
+            </div>
+            <button type="button" class="btn btn-primary" id="btnSaveSpeedDialCustom" style="width: 100%;">Сохранить</button>
+          </div>
+          <div id="speedDialError" class="status-msg error" style="display: none; margin-top: 8px;"></div>
+          <div style="display: flex; gap: 8px; margin-top: 10px;">
+            <button type="button" class="btn btn-ghost" id="btnCancelSpeedDialEdit" style="flex: 1;">Отмена</button>
+            <button type="button" class="btn btn-danger" id="btnClearSpeedDialSlot" style="flex: 1; display: none;">Очистить</button>
+          </div>
+        </div>
 
-      <div class="field">
-        <label for="contactSearchInput">Справочник сотрудников (ФИО и телефон)</label>
-        <input type="text" id="contactSearchInput" placeholder="Поиск по имени или номеру телефона..." />
-      </div>
+        <div class="field">
+          <label for="contactSearchInput">Справочник сотрудников (ФИО и телефон)</label>
+          <input type="text" id="contactSearchInput" placeholder="Поиск по имени или номеру телефона..." />
+        </div>
 
-      <div id="contactsListContainer"></div>
+        <div id="contactsListContainer" class="contacts-list"></div>
 
-      <!-- Отдельный слот / блок под расширения функционала -->
-      <div class="future-slot">
-        <strong>Задел под будущие функции:</strong>
-        <div>Здесь будет размещён блок быстрых действий связи, вызов дежурного диспетчера и сервисные инструменты телефонии.</div>
+        <!-- Отдельный слот / блок под расширения функционала (скрыт) -->
+        <div class="future-slot" style="display: none;">
+          <strong>Задел под будущие функции:</strong>
+          <div>Здесь будет размещён блок быстрых действий связи, вызов дежурного диспетчера и сервисные инструменты телефонии.</div>
+        </div>
       </div>
     </div>
   </div>
@@ -3363,6 +3618,7 @@
         addressesCache: "expert_hub_addresses_cache_v1",
         lastSyncedPhone: "expert_hub_last_synced_phone_v1",
         telegramTarget: "expert_hub_telegram_target",
+        speedDial: "expert_hub_speed_dial",
         // Жёстко защищённый ключ модуля маршрутов (ЗАПРЕЩЕНО затирать и удалять!)
         protectedRouteHistory: "expert_app_route_history_v1"
       }
@@ -3673,6 +3929,14 @@
         }
       }
 
+      if (incoming.speedDial !== undefined) {
+        const normSd = normalizeSpeedDialSlots(incoming.speedDial);
+        if (normSd) {
+          mergedProfile.speedDial = normSd;
+          saveSpeedDialSlots(normSd, { syncServer: false });
+        }
+      }
+
       // Синхронизируем справочник адресов
       let mergedAddresses = window.__EXPERT_ADDRESSES__ || [];
       if (Array.isArray(rawAddresses) || (mergedProfile.startPoint && String(mergedProfile.startPoint).trim())) {
@@ -3824,6 +4088,85 @@
           mode: norm.mode,
           customUrl: norm.customUrl
         }).catch((err) => console.warn("[Telegram] Не удалось сохранить настройку в таблицу:", err));
+      }
+      return norm;
+    }
+
+    function getDefaultSpeedDialCopy() {
+      return DEFAULT_SPEED_DIAL.map((s) => (s ? { name: s.name, phone: s.phone } : null));
+    }
+
+    function normalizeSpeedDialSlots(raw) {
+      let arr = raw;
+      if (typeof arr === "string") {
+        try { arr = JSON.parse(arr); } catch (e) { return null; }
+      }
+      if (!Array.isArray(arr)) return null;
+      const out = [];
+      for (let i = 0; i < 6; i++) {
+        const item = arr[i];
+        if (!item || typeof item !== "object") {
+          out.push(null);
+          continue;
+        }
+        const p11 = normalizePhone11(item.phone);
+        if (p11.length < 10) {
+          out.push(null);
+          continue;
+        }
+        const nm = String(item.name || "Контакт").trim().slice(0, 40) || "Контакт";
+        out.push({ name: nm, phone: formatPhoneMask(p11) });
+      }
+      return out;
+    }
+
+    function loadSpeedDialForPhone(phone) {
+      try {
+        const raw = SafeStorage.get(EXPERT_CONFIG.storageKeys.speedDial);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const pKey = normalizePhone11(phone) || "guest";
+          if (parsed && parsed.byPhone && Array.isArray(parsed.byPhone[pKey])) {
+            const norm = normalizeSpeedDialSlots(parsed.byPhone[pKey]);
+            if (norm) return norm;
+          }
+        }
+      } catch (e) {}
+      return getDefaultSpeedDialCopy();
+    }
+
+    function saveSpeedDialSlots(slots, opts) {
+      const options = opts || {};
+      const syncServer = options.syncServer !== false;
+      const norm = normalizeSpeedDialSlots(slots) || getDefaultSpeedDialCopy();
+      if (typeof appState !== "undefined") {
+        appState.speedDial = norm;
+      }
+      const phone11 = (typeof appState !== "undefined" && appState.session) ? normalizePhone11(appState.session.phone) : "";
+      const pKey = phone11 || "guest";
+      try {
+        const raw = SafeStorage.get(EXPERT_CONFIG.storageKeys.speedDial);
+        const store = raw ? (JSON.parse(raw) || {}) : {};
+        if (!store.byPhone || typeof store.byPhone !== "object") store.byPhone = {};
+        store.byPhone[pKey] = norm;
+        SafeStorage.set(EXPERT_CONFIG.storageKeys.speedDial, JSON.stringify(store));
+      } catch (e) {}
+
+      if (window.__EXPERT_PROFILE__ && typeof window.__EXPERT_PROFILE__ === "object") {
+        window.__EXPERT_PROFILE__.speedDial = norm;
+        SafeStorage.set(EXPERT_CONFIG.storageKeys.profileCache, JSON.stringify(window.__EXPERT_PROFILE__));
+      }
+
+      if (typeof window.renderSpeedDialGrid === "function") {
+        window.renderSpeedDialGrid();
+      }
+
+      if (syncServer && typeof appState !== "undefined" && appState.session && EXPERT_CONFIG.gasUrl) {
+        apiPost("saveUserSpeedDial", {
+          phone: appState.session.phone,
+          pin: appState.session.pin,
+          slots: norm
+        }).catch((err) => console.warn("[SpeedDial] Не удалось сохранить быстрый вызов в таблицу:", err));
       }
       return norm;
     }
@@ -4014,7 +4357,17 @@
       { id: "c-40", fullName: "Фолимагин Александр", phone: "+7 977 446 46 81", note: "Эксперт" },
       { id: "c-41", fullName: "Шаров Алексей", phone: "+7 929 977 77 48", note: "Эксперт" },
       { id: "c-42", fullName: "Шестаков Владислав", phone: "+7 917 582 11 59", note: "Эксперт" },
-      { id: "c-43", fullName: "Шунков Эльдар", phone: "+7 929 928 81 50", note: "Эксперт" }
+      { id: "c-43", fullName: "Шунков Эльдар", phone: "+7 929 928 81 50", note: "Эксперт" },
+      { id: "c-44", fullName: "Склад", phone: "+7 919 960 39 48", note: "Склад" }
+    ];
+
+    const DEFAULT_SPEED_DIAL = [
+      { name: "Склад", phone: "+7 919 960 39 48" },
+      { name: "Матвей дисп", phone: "+7 963 636 63 36" },
+      { name: "Слава дисп", phone: "+7 916 921 59 63" },
+      null,
+      null,
+      null
     ];
 
     /* Базовые демонстрационные сообщения чата */
@@ -4063,6 +4416,7 @@
     const appState = {
       session: null,
       telegramTarget: null,
+      speedDial: null,
       activeModule: null,
       messages: [],
       contacts: []
@@ -5131,6 +5485,7 @@
       window.__EXPERT_PROFILE__ = null;
       window.__EXPERT_ADDRESSES__ = null;
       appState.telegramTarget = null;
+      appState.speedDial = null;
       if (newPhone) {
         SafeStorage.set(EXPERT_CONFIG.storageKeys.lastSyncedPhone, newPhone);
       }
@@ -5920,15 +6275,210 @@
         });
       }
 
+      const speedDialGrid = document.getElementById("speedDialGrid");
+      const speedDialEditor = document.getElementById("speedDialEditor");
+      const speedDialEditorTitle = document.getElementById("speedDialEditorTitle");
+      const speedDialTabContacts = document.getElementById("speedDialTabContacts");
+      const speedDialTabCustom = document.getElementById("speedDialTabCustom");
+      const speedDialContactSearch = document.getElementById("speedDialContactSearch");
+      const speedDialContactsList = document.getElementById("speedDialContactsList");
+      const speedDialCustomName = document.getElementById("speedDialCustomName");
+      const speedDialCustomPhone = document.getElementById("speedDialCustomPhone");
+      const btnSaveSpeedDialCustom = document.getElementById("btnSaveSpeedDialCustom");
+      const btnCancelSpeedDialEdit = document.getElementById("btnCancelSpeedDialEdit");
+      const btnClearSpeedDialSlot = document.getElementById("btnClearSpeedDialSlot");
+      const speedDialError = document.getElementById("speedDialError");
+      let activeSpeedDialIndex = -1;
+
+      if (speedDialCustomPhone) attachPhoneMask(speedDialCustomPhone);
+
+      const getCurrentSpeedDialSlots = () => {
+        const curPhone = appState.session ? appState.session.phone : "";
+        if (!Array.isArray(appState.speedDial) || appState.speedDial.length !== 6) {
+          appState.speedDial = loadSpeedDialForPhone(curPhone);
+        }
+        return appState.speedDial;
+      };
+
+      const closeSpeedDialEditor = () => {
+        activeSpeedDialIndex = -1;
+        if (speedDialEditor) speedDialEditor.style.display = "none";
+        if (speedDialError) {
+          speedDialError.style.display = "none";
+          speedDialError.textContent = "";
+        }
+      };
+
+      const setSpeedDialTab = (tabName) => {
+        if (!speedDialEditor) return;
+        speedDialEditor.querySelectorAll("[data-sd-tab]").forEach((btn) => {
+          btn.classList.toggle("active", btn.getAttribute("data-sd-tab") === tabName);
+        });
+        if (speedDialTabContacts) speedDialTabContacts.style.display = tabName === "contacts" ? "block" : "none";
+        if (speedDialTabCustom) speedDialTabCustom.style.display = tabName === "custom" ? "block" : "none";
+        if (speedDialError) speedDialError.style.display = "none";
+      };
+
+      const renderSpeedDialPickList = (query) => {
+        if (!speedDialContactsList) return;
+        const q = String(query || "").trim().toLowerCase();
+        const qDigits = q.replace(/\D/g, "");
+        const list = (appState.contacts || []).filter((c) => {
+          if (!q) return true;
+          const nameMatch = String(c.fullName || "").toLowerCase().includes(q);
+          const phoneMatch = String(c.phone || "").toLowerCase().includes(q);
+          const digitsMatch = qDigits.length >= 2 && normalizePhone11(c.phone).includes(qDigits);
+          const noteMatch = String(c.note || "").toLowerCase().includes(q);
+          return nameMatch || phoneMatch || digitsMatch || noteMatch;
+        });
+        if (!list.length) {
+          speedDialContactsList.innerHTML = `<div style="padding: 10px; text-align: center; font-size: 12px; color: var(--muted);">Контакты не найдены</div>`;
+          return;
+        }
+        speedDialContactsList.innerHTML = list.map((c, idx) => {
+          const safeName = escapeSecurityHtml(String(c.fullName || "Сотрудник"));
+          const safePhone = escapeSecurityHtml(c.phone ? formatPhoneMask(c.phone) : "");
+          const safeNote = c.note ? escapeSecurityHtml(String(c.note)) : "";
+          return `
+            <button type="button" class="speed-dial-pick-item" data-sd-pick-idx="${idx}">
+              <div style="min-width: 0;">
+                <div style="font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeName}</div>
+                <div style="font-size: 11px; color: var(--muted);">${safePhone}${safeNote ? " • " + safeNote : ""}</div>
+              </div>
+              <span style="font-size: 12px; color: var(--primary); font-weight: 700; flex-shrink: 0;">Выбрать</span>
+            </button>
+          `;
+        }).join("");
+        speedDialContactsList.querySelectorAll("[data-sd-pick-idx]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const idx = Number(btn.getAttribute("data-sd-pick-idx"));
+            const picked = list[idx];
+            if (!picked || activeSpeedDialIndex < 0 || activeSpeedDialIndex > 5) return;
+            const nextSlots = getCurrentSpeedDialSlots().slice();
+            nextSlots[activeSpeedDialIndex] = {
+              name: String(picked.fullName || "Контакт").trim().slice(0, 40),
+              phone: formatPhoneMask(picked.phone || "")
+            };
+            saveSpeedDialSlots(nextSlots, { syncServer: true });
+            closeSpeedDialEditor();
+          });
+        });
+      };
+
+      const openSpeedDialEditor = (slotIdx) => {
+        if (!speedDialEditor) return;
+        activeSpeedDialIndex = slotIdx;
+        const slots = getCurrentSpeedDialSlots();
+        const cur = slots[slotIdx];
+        if (speedDialEditorTitle) {
+          speedDialEditorTitle.textContent = cur ? (`Редактировать слот #${slotIdx + 1}`) : (`Добавить в слот #${slotIdx + 1}`);
+        }
+        if (btnClearSpeedDialSlot) {
+          btnClearSpeedDialSlot.style.display = cur ? "inline-flex" : "none";
+        }
+        if (speedDialCustomName) speedDialCustomName.value = cur ? cur.name : "";
+        if (speedDialCustomPhone) speedDialCustomPhone.value = cur ? formatPhoneMask(cur.phone) : "";
+        if (speedDialContactSearch) speedDialContactSearch.value = "";
+        setSpeedDialTab("contacts");
+        renderSpeedDialPickList("");
+        speedDialEditor.style.display = "block";
+      };
+
+      const renderSpeedDialGrid = window.renderSpeedDialGrid = () => {
+        if (!speedDialGrid) return;
+        const slots = getCurrentSpeedDialSlots();
+        speedDialGrid.innerHTML = slots.map((slot, idx) => {
+          if (!slot) {
+            return `
+              <div class="speed-dial-card empty" role="button" tabindex="0" data-sd-empty="${idx}" title="Добавить быстрый вызов">
+                <span class="speed-dial-plus">+</span>
+                <span class="speed-dial-add-label">Добавить</span>
+              </div>
+            `;
+          }
+          const safeName = escapeSecurityHtml(slot.name);
+          const safePhone = escapeSecurityHtml(formatPhoneMask(slot.phone));
+          const digits = normalizePhone11(slot.phone);
+          return `
+            <div class="speed-dial-card" role="button" tabindex="0" data-sd-call="${digits}" data-sd-idx="${idx}" title="Позвонить: ${safeName}">
+              <button type="button" class="speed-dial-edit-btn" data-sd-edit="${idx}" title="Изменить">✎</button>
+              <div class="speed-dial-icon">📞</div>
+              <div class="speed-dial-name">${safeName}</div>
+              <div class="speed-dial-phone">${safePhone}</div>
+            </div>
+          `;
+        }).join("");
+
+        speedDialGrid.querySelectorAll("[data-sd-empty]").forEach((card) => {
+          const idx = Number(card.getAttribute("data-sd-empty"));
+          card.addEventListener("click", () => openSpeedDialEditor(idx));
+        });
+        speedDialGrid.querySelectorAll("[data-sd-edit]").forEach((btn) => {
+          const idx = Number(btn.getAttribute("data-sd-edit"));
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openSpeedDialEditor(idx);
+          });
+        });
+        speedDialGrid.querySelectorAll("[data-sd-call]").forEach((card) => {
+          const digits = card.getAttribute("data-sd-call") || "";
+          card.addEventListener("click", () => {
+            if (digits) window.location.href = "tel:+" + digits;
+          });
+        });
+      };
+
+      if (speedDialEditor) {
+        speedDialEditor.querySelectorAll("[data-sd-tab]").forEach((btn) => {
+          btn.addEventListener("click", () => setSpeedDialTab(btn.getAttribute("data-sd-tab")));
+        });
+      }
+      if (speedDialContactSearch) {
+        speedDialContactSearch.addEventListener("input", (e) => renderSpeedDialPickList(e.target.value));
+      }
+      if (btnCancelSpeedDialEdit) {
+        btnCancelSpeedDialEdit.addEventListener("click", closeSpeedDialEditor);
+      }
+      if (btnClearSpeedDialSlot) {
+        btnClearSpeedDialSlot.addEventListener("click", () => {
+          if (activeSpeedDialIndex < 0 || activeSpeedDialIndex > 5) return;
+          const nextSlots = getCurrentSpeedDialSlots().slice();
+          nextSlots[activeSpeedDialIndex] = null;
+          saveSpeedDialSlots(nextSlots, { syncServer: true });
+          closeSpeedDialEditor();
+        });
+      }
+      if (btnSaveSpeedDialCustom) {
+        btnSaveSpeedDialCustom.addEventListener("click", () => {
+          if (activeSpeedDialIndex < 0 || activeSpeedDialIndex > 5) return;
+          const nm = String(speedDialCustomName ? speedDialCustomName.value : "").trim().slice(0, 40);
+          const p11 = normalizePhone11(speedDialCustomPhone ? speedDialCustomPhone.value : "");
+          if (!nm) {
+            if (speedDialError) { speedDialError.textContent = "Введите название для карточки."; speedDialError.style.display = "block"; }
+            return;
+          }
+          if (p11.length !== 11) {
+            if (speedDialError) { speedDialError.textContent = "Введите корректный номер телефона (+7 ХХХ ХХХ ХХ ХХ)."; speedDialError.style.display = "block"; }
+            return;
+          }
+          const nextSlots = getCurrentSpeedDialSlots().slice();
+          nextSlots[activeSpeedDialIndex] = { name: nm, phone: formatPhoneMask(p11) };
+          saveSpeedDialSlots(nextSlots, { syncServer: true });
+          closeSpeedDialEditor();
+        });
+      }
+
       const openContactsModal = () => {
         setCommMenuOpen(false);
         if (!phoneModal) return;
+        closeSpeedDialEditor();
+        renderSpeedDialGrid();
         phoneModal.classList.add("open");
         phoneModal.setAttribute("aria-hidden", "false");
         if (typeof refreshContacts === "function") {
           refreshContacts();
         }
-        if (contactSearchInput) {
+        if (contactSearchInput && !isMobileOrTouchForChatKb()) {
           setTimeout(() => contactSearchInput.focus(), 60);
         }
       };
@@ -6804,7 +7354,7 @@
 
         const canStartGesture = (target) => {
           if (!target || !target.closest) return true;
-          if (target.closest("input, textarea, select, option, button, a, .app-tile, .comm-fab-wrap, .modal-card, .chat-drawer, .chat-messages")) {
+          if (target.closest("input, textarea, select, option, button, a, .app-tile, .comm-fab-wrap, .modal-backdrop, .modal-card, #phoneModalBackdrop, #settingsModalBackdrop, #tgConfigModalBackdrop, .chat-drawer, .chat-messages")) {
             return false;
           }
           // Не мешаем скроллу внутри открытого модуля
@@ -6817,6 +7367,8 @@
         window.addEventListener("pointerdown", (e) => {
           if (e.button !== undefined && e.button !== 0 && e.pointerType === "mouse") return;
           if (adminModal && adminModal.classList.contains("open")) return;
+          if (document.querySelector(".modal-backdrop.open")) return;
+          if (e.target && e.target.closest && e.target.closest(".modal-backdrop, .modal-card, #phoneModalBackdrop, #settingsModalBackdrop, #tgConfigModalBackdrop")) return;
           if (!canStartGesture(e.target)) return;
           if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
           clearCanvas();
@@ -6850,7 +7402,9 @@
         };
 
         window.addEventListener("touchmove", (e) => {
-          if (isDrawing && e.cancelable) {
+          if (!isDrawing) return;
+          if (e.target && e.target.closest && e.target.closest(".modal-backdrop.open, .modal-card, .modal-body")) return;
+          if (e.cancelable) {
             e.preventDefault();
           }
         }, { passive: false });
@@ -6981,7 +7535,7 @@
       document.addEventListener("touchmove", (e) => {
         if (window.innerWidth > 640 || !e.touches || e.touches.length !== 1) return;
 
-        const scrollable = e.target.closest(".module-view, .chat-messages, .auth-wrapper, .modal-card, .chat-drawer, #contactsListContainer, #adminModalBackdrop");
+        const scrollable = e.target.closest(".module-view, .chat-messages, .auth-wrapper, .modal-body, .speed-dial-contacts-list, .modal-card, .chat-drawer, #contactsListContainer, #adminModalBackdrop");
         if (!scrollable) {
           e.preventDefault();
           return;
@@ -7031,6 +7585,7 @@
       lockMobileViewportScroll();
       appState.session = loadInitialSession();
       appState.telegramTarget = loadTelegramTargetForPhone(appState.session ? appState.session.phone : "");
+      appState.speedDial = loadSpeedDialForPhone(appState.session ? appState.session.phone : "");
       try {
         const cachedProfRaw = SafeStorage.get(EXPERT_CONFIG.storageKeys.profileCache);
         if (cachedProfRaw) window.__EXPERT_PROFILE__ = JSON.parse(cachedProfRaw);
