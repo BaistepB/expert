@@ -2532,7 +2532,8 @@
       backdrop-filter: none;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      overscroll-behavior-y: contain;
+      touch-action: pan-y;
+      overscroll-behavior: contain;
     }
 
     #adminModalBackdrop.admin-fullscreen-backdrop.open {
@@ -2550,6 +2551,14 @@
       border-radius: 0;
       box-shadow: none;
       overflow: visible;
+      touch-action: pan-y;
+    }
+
+    @media (max-width: 640px) {
+      #adminModalBackdrop .admin-alerts-list {
+        max-height: none;
+        overflow-y: visible;
+      }
     }
 
     .admin-page-topbar {
@@ -4512,23 +4521,53 @@
       }
     }
 
-    function getChatUserColors(userKey, isDarkTheme) {
-      const keyStr = String(userKey || "user").trim().toLowerCase();
-      let hash = 2166136261;
-      for (let i = 0; i < keyStr.length; i++) {
-        hash ^= keyStr.charCodeAt(i);
-        hash = Math.imul(hash, 16777619);
+    const chatUserColorIndexMap = new Map();
+
+    function getChatUserColors(itemOrKey, isDarkTheme) {
+      let userKey = "anonymous";
+      if (itemOrKey && typeof itemOrKey === "object") {
+        const rawPhone = normalizePhone11(itemOrKey.userPhone || itemOrKey.phone || "");
+        const rawName = String(itemOrKey.userName || itemOrKey.author || itemOrKey.fullName || "").trim().toLowerCase();
+        userKey = rawPhone || rawName || "anonymous";
+      } else {
+        userKey = String(itemOrKey || "anonymous").trim().toLowerCase() || "anonymous";
       }
+
       const lightPalette = [
-        "#1d4ed8", "#047857", "#7c3aed", "#b45309", "#be185d",
-        "#0f766e", "#4338ca", "#c2410c", "#4d7c0f", "#9333ea"
+        "#1d4ed8", "#047857", "#7c3aed", "#b45309", "#be185d", "#0f766e",
+        "#4338ca", "#c2410c", "#4d7c0f", "#9333ea", "#0369a1", "#b91c1c"
       ];
       const darkPalette = [
-        "#60a5fa", "#34d399", "#a78bfa", "#fbbf24", "#f472b6",
-        "#2dd4bf", "#818cf8", "#fb923c", "#a3e635", "#e879f9"
+        "#60a5fa", "#34d399", "#a78bfa", "#fbbf24", "#f472b6", "#2dd4bf",
+        "#818cf8", "#fb923c", "#a3e635", "#e879f9", "#38bdf8", "#f87171"
       ];
       const palette = isDarkTheme ? darkPalette : lightPalette;
-      const color = palette[Math.abs(hash) % palette.length];
+
+      let colorIdx;
+      if (chatUserColorIndexMap.has(userKey)) {
+        colorIdx = chatUserColorIndexMap.get(userKey);
+      } else {
+        let hash = 2166136261;
+        for (let i = 0; i < userKey.length; i++) {
+          hash ^= userKey.charCodeAt(i);
+          hash = Math.imul(hash, 16777619);
+        }
+        const baseIdx = (hash >>> 0) % palette.length;
+        colorIdx = baseIdx;
+        if (chatUserColorIndexMap.size < palette.length) {
+          const used = new Set(chatUserColorIndexMap.values());
+          for (let offset = 0; offset < palette.length; offset++) {
+            const candidate = (baseIdx + offset) % palette.length;
+            if (!used.has(candidate)) {
+              colorIdx = candidate;
+              break;
+            }
+          }
+        }
+        chatUserColorIndexMap.set(userKey, colorIdx);
+      }
+
+      const color = palette[colorIdx % palette.length];
       const cleanHex = color.replace("#", "");
       const r = parseInt(cleanHex.slice(0, 2), 16);
       const g = parseInt(cleanHex.slice(2, 4), 16);
@@ -4636,8 +4675,7 @@
           const safeName = escapeSecurityHtml(item.userName || "Сотрудник");
           const safeText = escapeSecurityHtml(item.message || "");
           const isMine = item.userPhone && normalizePhone11(item.userPhone) === normalizePhone11(myPhone);
-          const userKey = item.userPhone ? normalizePhone11(item.userPhone) : (item.userName || "user");
-          const { color: userColor, softBg } = getChatUserColors(userKey, isDarkTheme);
+          const { color: userColor, softBg } = getChatUserColors(item, isDarkTheme);
 
           return `
             <article class="chat-msg${isMine ? " mine" : ""}" style="border-left: 3px solid ${userColor}; background: linear-gradient(0deg, ${softBg}, ${softBg}), var(--surface);">
@@ -7543,7 +7581,10 @@
       document.addEventListener("touchmove", (e) => {
         if (window.innerWidth > 640 || !e.touches || e.touches.length !== 1) return;
 
-        const scrollable = e.target.closest(".module-view, .chat-messages, .auth-wrapper, .modal-body, .speed-dial-contacts-list, .modal-card, .chat-drawer, #contactsListContainer, #adminModalBackdrop");
+        const openAdminBackdrop = e.target && e.target.closest ? e.target.closest("#adminModalBackdrop.open") : null;
+        const scrollable = openAdminBackdrop
+          ? openAdminBackdrop
+          : e.target.closest(".module-view, .chat-messages, .auth-wrapper, .modal-body, .speed-dial-contacts-list, .modal-card, .chat-drawer, #contactsListContainer, #adminModalBackdrop");
         if (!scrollable) {
           e.preventDefault();
           return;
